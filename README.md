@@ -8,7 +8,7 @@
 [![Hardware](https://img.shields.io/badge/Hardware-ESP32--H2%20(96MHz%20RISC--V)-E63946?style=flat-square&logo=espressif&logoColor=white)](https://www.espressif.com/)
 [![Web Serial](https://img.shields.io/badge/Interface-Web%20Serial%20API%20(115200%208N1)-00B4D8?style=flat-square&logo=googlechrome&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API)
 [![Voice AI](https://img.shields.io/badge/Voice%20AI-ElevenLabs%20Turbo%20v2.5-F0A030?style=flat-square&logo=elevenlabs&logoColor=black)](https://elevenlabs.io/)
-[![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20HI%20%7C%20KN-2A9D8F?style=flat-square)](https://github.com/)
+[![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20HI%20%7C%20KN-2A9D8F?style=flat-square)](https://github.com/JAYASIMHAREDDYK/Second-Ahead)
 [![EDA](https://img.shields.io/badge/EDA-KiCad%208.0-314CB6?style=flat-square&logo=kicad&logoColor=white)](https://kicad.org/)
 [![License](https://img.shields.io/badge/License-MIT-7209B7?style=flat-square)](LICENSE)
 
@@ -25,6 +25,8 @@
 [![Lead Time](https://img.shields.io/badge/Lead%20Time%20Audit-TCRT5000%20Ground%20Truth-06D6A0?style=flat-square)](#ground-truth-physical-impact-audit)
 [![Voice Cache](https://img.shields.io/badge/Audio%20Latency-0ms%20Cached-FFB703?style=flat-square)](#trilingual-cockpit-voice-ai)
 
+</div>
+
 <br/>
 
 ```
@@ -35,8 +37,6 @@
      [TCRT5000 IR Contact: U4] ──┘          ▼                                                        ├─► 2D Kinematic Simulator
                                       [16x2 I2C LCD]                                                 └─► Trilingual Voice AI
 ```
-
-</div>
 
 ---
 
@@ -53,7 +53,7 @@
 - [Ground-Truth Physical Impact Audit](#ground-truth-physical-impact-audit)
 - [Getting Started](#getting-started)
 - [Technical Dossier and Engineering Deliverables](#technical-dossier-and-engineering-deliverables)
-- [Repository Structure](#project-structure)
+- [Project Structure](#project-structure)
 - [License](#license)
 
 ---
@@ -65,7 +65,7 @@
 Standard ultrasonic parking systems suffer from severe cross-echo interference, high cycle latency, and tunnel-vision frontal coverage that leaves intersection blind spots vulnerable. SECONDS AHEAD resolves these challenges through:
 
 1. **Dual-Sector Acoustic Radar**: Frontal longitudinal tracking (**Sensor A**, 2–100 cm) paired with an orthogonal 90° lateral sensor (**Sensor B** for intersection cross-traffic), paced with 12ms non-blocking ping interleaving to prevent ultrasonic packet collisions.
-2. **Deterministic Ground-Truth Lead-Time Audit**: An integrated **TCRT5000 infrared reflective sensor (U4)** positioned at the bumper barrier records the exact microsecond timestamp of physical impact. The system automatically computes and audits the advance warning margin ($\text{lead\_ms} = t_{\text{impact}} - t_{\text{first\_warning}}$).
+2. **Deterministic Ground-Truth Lead-Time Audit**: An integrated **TCRT5000 infrared reflective sensor (U4)** positioned at the bumper barrier records the exact microsecond timestamp of physical impact. The system automatically computes and audits the advance warning margin ($\Delta t_{\text{lead}} = t_{\text{contact}} - t_{\text{warning}}$).
 3. **Web Serial Telemetry Dashboard**: A zero-dependency single-file frontend running directly in Chromium-based browsers, visualizing live 20 Hz telemetry with rolling strip charts, dynamic proximity bars, and threat transition timelines.
 4. **2D Kinematic Incident Simulator**: A real-time physics replayer simulating road kinematics, dual radar beam cones, lateral vehicle intrusions, safety boundaries, and collision shockwave dynamics.
 5. **Trilingual Cockpit Voice AI**: Calm, authoritative ADAS audio warnings in **English**, **हिंदी (Hindi)**, and **ಕನ್ನಡ (Kannada)** powered by **ElevenLabs Creator Plan (Turbo v2.5)** with an in-memory audio object cache for **0 ms repeat latency**.
@@ -77,31 +77,31 @@ Standard ultrasonic parking systems suffer from severe cross-echo interference, 
 ```mermaid
 graph TD
     subgraph Hardware ["Hardware Subsystem (ESP32-H2 Dev Module)"]
-        SA["Sensor A: Front HC-SR04<br/>(GPIO 10 / GPIO 11)"] -->|Longitudinal Pulse| MCU["ESP32-H2 SoC<br/>(96 MHz RISC-V Core)"]
-        SB["Sensor B: Lateral HC-SR04<br/>(GPIO 14 / GPIO 01)"] -->|Lateral Pulse (12ms Paced)| MCU
-        IR["Sensor U4: TCRT5000 IR<br/>(GPIO 12, Active LOW)"] -->|Bumper Impact Ground Truth| MCU
-        BTN["Mute Button (GPIO 24)"] -->|Audio Silence Toggle| MCU
+        SA["Sensor A: Front HC-SR04 (GPIO 10 / 11)"] -->|Longitudinal Ping| MCU["ESP32-H2 RISC-V SoC"]
+        SB["Sensor B: Lateral HC-SR04 (GPIO 14 / 01)"] -->|12ms Interleaved Ping| MCU
+        IR["Sensor U4: TCRT5000 IR (GPIO 12)"] -->|Bumper Impact Trigger| MCU
+        BTN["Mute Switch (GPIO 24)"] -->|Mute Toggle| MCU
 
-        MCU -->|I2C Fast Mode 400kHz (GPIO 22/23)| LCD["16x2 Character LCD<br/>(PCF8574 Backpack @ 0x27)"]
-        MCU -->|Dual Parallel Pin Drive (GPIO 0 & 13)| LED_R["Red Strobe LEDs (High Risk)"]
-        MCU -->|Digital Out (GPIO 4)| LED_B["Blue Monitor LED"]
-        MCU -->|Pulsed Tone Drive (GPIO 5)| BZ["Acoustic Piezo Buzzer"]
+        MCU -->|I2C Fast Mode 400kHz| LCD["16x2 Character LCD (0x27)"]
+        MCU -->|Parallel Digital Drive| LED_R["Red Strobe LEDs (High Risk)"]
+        MCU -->|Digital Output| LED_B["Blue Monitor LED"]
+        MCU -->|Tone Frequency Output| BZ["Acoustic Piezo Buzzer"]
     end
 
     subgraph Telemetry ["Serial Data Stream"]
-        MCU -->|USB CDC UART @ 115200 8N1 (18-20 Hz)| WS["Web Serial CDC Reader"]
+        MCU -->|USB CDC UART 115200 8N1| WS["Web Serial Interface"]
     end
 
-    subgraph Frontend ["Telemetry Dashboard & Incident Simulator (index.html)"]
-        WS --> PARSER["CSV Telemetry Parser"]
-        PARSER --> CLUSTER["Telemetry Instrument Cluster<br/>(Gauges, 30s Strip Chart, Range Bar, Timeline)"]
-        PARSER --> SIM["2D Kinematic Canvas Simulator<br/>(Radar Cones, Car Kinematics, Shockwaves)"]
-        PARSER --> AUDIT["Ground-Truth Audit Table<br/>(Lead-Time Tracker & Median Stats)"]
-        PARSER --> VOICE["Neural Voice Engine<br/>(ElevenLabs Turbo v2.5 / Web Speech Fallback)"]
+    subgraph Frontend ["Dashboard and Incident Simulator (index.html)"]
+        WS --> PARSER["CSV Packet Parser"]
+        PARSER --> CLUSTER["Telemetry Cluster (Gauges, Strip Chart, Timeline)"]
+        PARSER --> SIM["2D Kinematic Simulator (Radar Cones, Car Physics)"]
+        PARSER --> AUDIT["Ground-Truth Audit (Lead Time and Median Stats)"]
+        PARSER --> VOICE["Neural Voice Engine (ElevenLabs Turbo / Web Speech)"]
 
-        VOICE -->|Audio Playback| SPK["Trilingual Cockpit Speaker<br/>(English | Hindi | Kannada)"]
-        SIM -->|MediaRecorder API| VID["WebM Video Clip Exporter"]
-        CLUSTER -->|Blob Exporter| CSV["Telemetry CSV Log Downloader"]
+        VOICE -->|Audio Playback| SPK["Trilingual Cockpit Audio"]
+        SIM -->|MediaRecorder| VID["WebM Video Clip Exporter"]
+        CLUSTER -->|Data Export| CSV["CSV Telemetry Downloader"]
     end
 ```
 
@@ -160,15 +160,15 @@ The ESP32-H2 firmware continuously calculates relative target kinematics using r
 ### Mathematical Formulation
 
 1. **Longitudinal Distance Measurement**:
-   $$d(t) = \frac{\Delta t_{\text{echo}} \times 0.0343\,\text{cm/\mu s}}{2}$$
+   $$d(t) = \frac{\Delta t_{\text{echo}} \times 0.0343}{2} \quad [\text{cm}]$$
 
 2. **Closing Velocity Calculation**:
-   $$v(t) = -\frac{d(t) - d(t - \Delta t)}{\Delta t}$$
+   $$v(t) = -\frac{d(t) - d(t - \Delta t)}{\Delta t} \quad [\text{cm/s}]$$
    *(A positive velocity value denotes an object actively closing distance towards the vehicle).*
 
 3. **Time-to-Collision (TTC)**:
-   $$\text{TTC}(t) = \frac{d(t)}{v(t)}$$
-   *(Computed only when $v(t) \ge 4.0\,\text{cm/s}$. Evaluated as invalid ($-1.0\,\text{s}$) when the target is static or receding).*
+   $$\text{TTC}(t) = \frac{d(t)}{v(t)} \quad [\text{s}]$$
+   *(Computed only when $v(t) \ge 4.0\text{ cm/s}$. Evaluated as invalid ($-1.0\text{ s}$) when the target is static or receding).*
 
 ### Finite State Machine (FSM)
 
@@ -203,10 +203,10 @@ The ESP32-H2 firmware continuously calculates relative target kinematics using r
 ```
 
 - **WAIT**: Target beyond 100 cm. All visual and audible alarms remain silent.
-- **NO APPROACH**: Target detected within 100 cm but stationary or moving away ($v < 4\,\text{cm/s}$).
-- **UNCERTAIN**: Closing motion detected ($v \ge 4\,\text{cm/s}$); establishing trajectory persistence over multiple pings.
-- **MONITOR**: Verified approach trajectory with $3.0\,\text{s} < \text{TTC} \le 5.0\,\text{s}$ and $d > 50\,\text{cm}$. Solid Blue LED enabled.
-- **HIGH RISK**: Critical condition where $\text{TTC} \le 3.0\,\text{s}$ or $d < 50\,\text{cm}$. Triggers 3 Hz Red strobe LEDs, pulsed audio tone, and cockpit voice alert.
+- **NO APPROACH**: Target detected within 100 cm but stationary or moving away ($v < 4\text{ cm/s}$).
+- **UNCERTAIN**: Closing motion detected ($v \ge 4\text{ cm/s}$); establishing trajectory persistence over multiple pings.
+- **MONITOR**: Verified approach trajectory with $3.0\text{ s} < \text{TTC} \le 5.0\text{ s}$ and $d > 50\text{ cm}$. Solid Blue LED enabled.
+- **HIGH RISK**: Critical condition where $\text{TTC} \le 3.0\text{ s}$ or $d < 50\text{ cm}$. Triggers 3 Hz Red strobe LEDs, pulsed audio tone, and cockpit voice alert.
 
 ---
 
@@ -301,7 +301,7 @@ The audio subsystem integrates the **ElevenLabs Creator Plan (`eleven_turbo_v2_5
 
 To provide definitive mathematical proof of safety efficacy for automotive judges and evaluators, SECONDS AHEAD implements a hardware-based ground-truth audit:
 
-$$\text{Warning Lead Time } (\text{lead\_ms}) = t_{\text{contact}} - t_{\text{first\_high\_risk\_alert}}$$
+$$\text{Warning Lead Time } (\Delta t_{\text{lead}}) = t_{\text{contact}} - t_{\text{warning}}$$
 
 ```
 Time Axis (ms) ──────────────────────────────────────────────────────────►
