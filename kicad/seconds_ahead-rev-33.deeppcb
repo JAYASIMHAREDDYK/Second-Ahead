@@ -1,0 +1,1661 @@
+{
+  "name": "SECONDS AHEAD - Vehicle Approach Warning Prototype",
+  "rules": [
+    {
+      "subjects": [],
+      "type": "rotateFirst",
+      "value": false
+    },
+    {
+      "subjects": [],
+      "type": "allowViaAtSmd",
+      "value": false
+    },
+    {
+      "subjects": [],
+      "type": "pinConnectionPoint",
+      "value": "centroid"
+    }
+  ],
+  "resolution": {
+    "unit": "mm",
+    "value": 1000
+  },
+  "boundary": {
+    "shape": {
+      "type": "polyline",
+      "points": [
+        [
+          100000,
+          -80000
+        ],
+        [
+          100000,
+          -135000
+        ],
+        [
+          185000,
+          -135000
+        ],
+        [
+          185000,
+          -80000
+        ],
+        [
+          100000,
+          -80000
+        ]
+      ]
+    },
+    "clearance": 150
+  },
+  "padstacks": [
+    {
+      "id": "Via[0-1]_0.8:0.4mm",
+      "pads": [
+        {
+          "shape": {
+            "type": "circle",
+            "center": [
+              0,
+              0
+            ],
+            "radius": 400
+          },
+          "layerFrom": 0,
+          "layerTo": 1
+        }
+      ],
+      "layers": [
+        0,
+        1
+      ],
+      "allowVia": false,
+      "hole": {
+        "shape": {
+          "type": "circle",
+          "center": [
+            0,
+            0
+          ],
+          "radius": 200
+        }
+      }
+    },
+    {
+      "id": "Padstack_Circle_0_0_800_L0_1",
+      "pads": [
+        {
+          "shape": {
+            "type": "circle",
+            "center": [
+              0,
+              0
+            ],
+            "radius": 800
+          },
+          "layerFrom": 0,
+          "layerTo": 1
+        }
+      ],
+      "allowVia": false
+    },
+    {
+      "id": "Padstack_Rectangle_-800_-800_800_800_L0_1",
+      "pads": [
+        {
+          "shape": {
+            "type": "rectangle",
+            "lowerLeft": [
+              -800,
+              -800
+            ],
+            "upperRight": [
+              800,
+              800
+            ]
+          },
+          "layerFrom": 0,
+          "layerTo": 1
+        }
+      ],
+      "allowVia": false
+    },
+    {
+      "id": "Padstack_Rectangle_-900_-900_900_900_L0_1",
+      "pads": [
+        {
+          "shape": {
+            "type": "rectangle",
+            "lowerLeft": [
+              -900,
+              -900
+            ],
+            "upperRight": [
+              900,
+              900
+            ]
+          },
+          "layerFrom": 0,
+          "layerTo": 1
+        }
+      ],
+      "allowVia": false
+    },
+    {
+      "id": "Padstack_Circle_0_0_900_L0_1",
+      "pads": [
+        {
+          "shape": {
+            "type": "circle",
+            "center": [
+              0,
+              0
+            ],
+            "radius": 900
+          },
+          "layerFrom": 0,
+          "layerTo": 1
+        }
+      ],
+      "allowVia": false
+    }
+  ],
+  "componentDefinitions": [
+    {
+      "id": "Module:ESP32-H2-DevKitM-1__",
+      "pins": [
+        {
+          "id": "1",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            12700
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "2",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            10160
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "10",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            -2540
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "11",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            -5080
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "12",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            -7620
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "14",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -11430,
+            -12700
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "0",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            12700
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "13",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            10160
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "4",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            7620
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "5",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            5080
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "22",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            -7620
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "23",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            11430,
+            -10160
+          ],
+          "rotation": 0
+        }
+      ],
+      "keepouts": []
+    },
+    {
+      "id": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical__",
+      "pins": [
+        {
+          "id": "1",
+          "padstack": "Padstack_Rectangle_-800_-800_800_800_L0_1",
+          "position": [
+            -3810,
+            0
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "2",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            -1270,
+            0
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "3",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            1270,
+            0
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "4",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            3810,
+            0
+          ],
+          "rotation": 0
+        }
+      ],
+      "keepouts": []
+    },
+    {
+      "id": "LED_THT:LED_D5.0mm__",
+      "pins": [
+        {
+          "id": "1",
+          "padstack": "Padstack_Rectangle_-800_-800_800_800_L0_1",
+          "position": [
+            -1270,
+            0
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "2",
+          "padstack": "Padstack_Circle_0_0_800_L0_1",
+          "position": [
+            1270,
+            0
+          ],
+          "rotation": 0
+        }
+      ],
+      "keepouts": []
+    },
+    {
+      "id": "Buzzer_Beeper:Buzzer_12x9.5RM7.6__",
+      "pins": [
+        {
+          "id": "1",
+          "padstack": "Padstack_Rectangle_-900_-900_900_900_L0_1",
+          "position": [
+            -3800,
+            0
+          ],
+          "rotation": 0
+        },
+        {
+          "id": "2",
+          "padstack": "Padstack_Circle_0_0_900_L0_1",
+          "position": [
+            3800,
+            0
+          ],
+          "rotation": 0
+        }
+      ],
+      "keepouts": []
+    }
+  ],
+  "viaDefinitions": [
+    "Via[0-1]_0.8:0.4mm"
+  ],
+  "netClasses": [
+    {
+      "id": "__default__",
+      "trackWidth": 350,
+      "clearance": 250,
+      "viaDefinition": "Via[0-1]_0.8:0.4mm",
+      "nets": [],
+      "viaPriority": [
+        [
+          "Via[0-1]_0.8:0.4mm"
+        ]
+      ]
+    },
+    {
+      "id": "Power",
+      "trackWidth": 500,
+      "clearance": 250,
+      "viaDefinition": "Via[0-1]_0.8:0.4mm",
+      "nets": [
+        "+3V3",
+        "GND"
+      ],
+      "viaPriority": [
+        [
+          "Via[0-1]_0.8:0.4mm"
+        ]
+      ]
+    }
+  ],
+  "netPreferences": [
+    {
+      "id": "high_speed",
+      "nets": [],
+      "reduceViaCountPrioCoef": 2,
+      "reduceWireLengthPrioCoef": 3,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "medium_speed",
+      "nets": [
+        "I2C_SCL",
+        "I2C_SDA"
+      ],
+      "reduceViaCountPrioCoef": 1,
+      "reduceWireLengthPrioCoef": 1,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "low_speed",
+      "nets": [
+        "BLUE_MONITOR",
+        "BUZZER_ACT",
+        "ECHO_A",
+        "ECHO_B",
+        "IR_CONTACT",
+        "RED_ALERT",
+        "TRIG_A",
+        "TRIG_B"
+      ],
+      "reduceViaCountPrioCoef": 1,
+      "reduceWireLengthPrioCoef": 1,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "power",
+      "nets": [
+        "+3V3"
+      ],
+      "reduceViaCountPrioCoef": 1,
+      "reduceWireLengthPrioCoef": 2,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "ground",
+      "nets": [
+        "GND"
+      ],
+      "reduceViaCountPrioCoef": 1,
+      "reduceWireLengthPrioCoef": 1,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "analog",
+      "nets": [],
+      "reduceViaCountPrioCoef": 2,
+      "reduceWireLengthPrioCoef": 3,
+      "reduceAcuteAnglePrioCoef": 1
+    },
+    {
+      "id": "unknown",
+      "nets": [],
+      "reduceViaCountPrioCoef": 1,
+      "reduceWireLengthPrioCoef": 1,
+      "reduceAcuteAnglePrioCoef": 1
+    }
+  ],
+  "nets": [
+    {
+      "id": "GND",
+      "pins": [
+        "U1-2",
+        "U2-4",
+        "U3-4",
+        "D1-2",
+        "D2-2",
+        "BZ1-2"
+      ]
+    },
+    {
+      "id": "+3V3",
+      "pins": [
+        "U1-1",
+        "U2-1",
+        "U3-1"
+      ]
+    },
+    {
+      "id": "TRIG_A",
+      "pins": [
+        "U1-10",
+        "U2-2"
+      ]
+    },
+    {
+      "id": "ECHO_A",
+      "pins": [
+        "U1-11",
+        "U2-3"
+      ]
+    },
+    {
+      "id": "TRIG_B",
+      "pins": [
+        "U1-14",
+        "U3-2"
+      ]
+    },
+    {
+      "id": "ECHO_B",
+      "pins": [
+        "U3-3"
+      ]
+    },
+    {
+      "id": "IR_CONTACT",
+      "pins": [
+        "U1-12"
+      ]
+    },
+    {
+      "id": "RED_ALERT",
+      "pins": [
+        "U1-0",
+        "U1-13",
+        "D1-1"
+      ]
+    },
+    {
+      "id": "BLUE_MONITOR",
+      "pins": [
+        "U1-4",
+        "D2-1"
+      ]
+    },
+    {
+      "id": "BUZZER_ACT",
+      "pins": [
+        "U1-5",
+        "BZ1-1"
+      ]
+    },
+    {
+      "id": "I2C_SDA",
+      "pins": [
+        "U1-22"
+      ]
+    },
+    {
+      "id": "I2C_SCL",
+      "pins": [
+        "U1-23"
+      ]
+    }
+  ],
+  "differentialPairs": [],
+  "layers": [
+    {
+      "id": "F.Cu",
+      "type": "signal",
+      "keepouts": []
+    },
+    {
+      "id": "B.Cu",
+      "type": "signal",
+      "keepouts": []
+    }
+  ],
+  "components": [
+    {
+      "id": "U1",
+      "definition": "Module:ESP32-H2-DevKitM-1__",
+      "position": [
+        142500,
+        -107000
+      ],
+      "rotation": 0,
+      "side": "FRONT",
+      "partNumber": "Module:ESP32-H2-DevKitM-1",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "Module:ESP32-H2-DevKitM-1"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "value": "ESP32-H2 Dev Module Header Socket"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "ESP32-H2",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "U2",
+      "definition": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical__",
+      "position": [
+        108000,
+        -95000
+      ],
+      "rotation": 90,
+      "side": "FRONT",
+      "partNumber": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "HC-SR04_FRONT",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "U3",
+      "definition": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical__",
+      "position": [
+        108000,
+        -120000
+      ],
+      "rotation": 90,
+      "side": "FRONT",
+      "partNumber": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "HC-SR04_LATERAL",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "definition": "LED_THT:LED_D5.0mm__",
+      "position": [
+        175000,
+        -95000
+      ],
+      "rotation": 0,
+      "side": "FRONT",
+      "partNumber": "LED_THT:LED_D5.0mm",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "LED_THT:LED_D5.0mm"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "RED_ALERT",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "definition": "LED_THT:LED_D5.0mm__",
+      "position": [
+        175000,
+        -105000
+      ],
+      "rotation": 0,
+      "side": "FRONT",
+      "partNumber": "LED_THT:LED_D5.0mm",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "LED_THT:LED_D5.0mm"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "BLUE_MONITOR",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BZ1",
+      "definition": "Buzzer_Beeper:Buzzer_12x9.5RM7.6__",
+      "position": [
+        175000,
+        -120000
+      ],
+      "rotation": 0,
+      "side": "FRONT",
+      "partNumber": "Buzzer_Beeper:Buzzer_12x9.5RM7.6",
+      "protected": true,
+      "properties": [
+        {
+          "name": "footprintName",
+          "type": "string",
+          "value": "Buzzer_Beeper:Buzzer_12x9.5RM7.6"
+        },
+        {
+          "name": "Value",
+          "type": "string",
+          "value": "BUZZER",
+          "categories": [
+            "parameters"
+          ]
+        }
+      ]
+    }
+  ],
+  "wires": [
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 1,
+      "start": [
+        108000,
+        -98810
+      ],
+      "end": [
+        105714,
+        -101096
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 1,
+      "start": [
+        105714,
+        -101096
+      ],
+      "end": [
+        105714,
+        -121524
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 1,
+      "start": [
+        105714,
+        -121524
+      ],
+      "end": [
+        108000,
+        -123810
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 0,
+      "start": [
+        108000,
+        -98810
+      ],
+      "end": [
+        109175,
+        -98810
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 0,
+      "start": [
+        109175,
+        -98810
+      ],
+      "end": [
+        126560,
+        -98810
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 0,
+      "start": [
+        126560,
+        -98810
+      ],
+      "end": [
+        130239,
+        -95131
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "+3V3",
+      "layer": 0,
+      "start": [
+        130239,
+        -95131
+      ],
+      "end": [
+        131070,
+        -94300
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "BLUE_MONITOR",
+      "layer": 0,
+      "start": [
+        173730,
+        -105000
+      ],
+      "end": [
+        172668,
+        -105000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BLUE_MONITOR",
+      "layer": 0,
+      "start": [
+        172668,
+        -105000
+      ],
+      "end": [
+        159550,
+        -105000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BLUE_MONITOR",
+      "layer": 0,
+      "start": [
+        159550,
+        -105000
+      ],
+      "end": [
+        154682,
+        -100132
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BLUE_MONITOR",
+      "layer": 0,
+      "start": [
+        154682,
+        -100132
+      ],
+      "end": [
+        153930,
+        -99380
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BUZZER_ACT",
+      "layer": 0,
+      "start": [
+        153930,
+        -101920
+      ],
+      "end": [
+        155205,
+        -101920
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BUZZER_ACT",
+      "layer": 0,
+      "start": [
+        155205,
+        -101920
+      ],
+      "end": [
+        171200,
+        -117915
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BUZZER_ACT",
+      "layer": 0,
+      "start": [
+        171200,
+        -117915
+      ],
+      "end": [
+        171200,
+        -118838
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "BUZZER_ACT",
+      "layer": 0,
+      "start": [
+        171200,
+        -118838
+      ],
+      "end": [
+        171200,
+        -120000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "ECHO_A",
+      "layer": 1,
+      "start": [
+        131070,
+        -112080
+      ],
+      "end": [
+        130319,
+        -111329
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "ECHO_A",
+      "layer": 1,
+      "start": [
+        130319,
+        -111329
+      ],
+      "end": [
+        112720,
+        -93730
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "ECHO_A",
+      "layer": 1,
+      "start": [
+        112720,
+        -93730
+      ],
+      "end": [
+        109063,
+        -93730
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "ECHO_A",
+      "layer": 1,
+      "start": [
+        109063,
+        -93730
+      ],
+      "end": [
+        108000,
+        -93730
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 1,
+      "start": [
+        108000,
+        -91190
+      ],
+      "end": [
+        109175,
+        -91190
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 1,
+      "start": [
+        109175,
+        -91190
+      ],
+      "end": [
+        125420,
+        -91190
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 1,
+      "start": [
+        125420,
+        -91190
+      ],
+      "end": [
+        130239,
+        -96009
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 1,
+      "start": [
+        130239,
+        -96009
+      ],
+      "end": [
+        131070,
+        -96840
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        131070,
+        -96840
+      ],
+      "end": [
+        131901,
+        -96009
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        131901,
+        -96009
+      ],
+      "end": [
+        135907,
+        -92003
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        135907,
+        -92003
+      ],
+      "end": [
+        173273,
+        -92003
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        173273,
+        -92003
+      ],
+      "end": [
+        175439,
+        -94169
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        175439,
+        -94169
+      ],
+      "end": [
+        176270,
+        -95000
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        108000,
+        -91190
+      ],
+      "end": [
+        107169,
+        -92021
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        107169,
+        -92021
+      ],
+      "end": [
+        104378,
+        -94812
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        104378,
+        -94812
+      ],
+      "end": [
+        104378,
+        -112568
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        104378,
+        -112568
+      ],
+      "end": [
+        107169,
+        -115359
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        107169,
+        -115359
+      ],
+      "end": [
+        108000,
+        -116190
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -95000
+      ],
+      "end": [
+        176270,
+        -96175
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -96175
+      ],
+      "end": [
+        176270,
+        -103825
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -103825
+      ],
+      "end": [
+        176270,
+        -105000
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -105000
+      ],
+      "end": [
+        176270,
+        -106175
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -106175
+      ],
+      "end": [
+        176270,
+        -117470
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        176270,
+        -117470
+      ],
+      "end": [
+        177898,
+        -119098
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "GND",
+      "layer": 0,
+      "start": [
+        177898,
+        -119098
+      ],
+      "end": [
+        178800,
+        -120000
+      ],
+      "width": 500
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        153930,
+        -94300
+      ],
+      "end": [
+        153930,
+        -95363
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        153930,
+        -95363
+      ],
+      "end": [
+        153930,
+        -95778
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        153930,
+        -95778
+      ],
+      "end": [
+        153930,
+        -96840
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        153930,
+        -96840
+      ],
+      "end": [
+        154682,
+        -96088
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        154682,
+        -96088
+      ],
+      "end": [
+        155770,
+        -95000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        155770,
+        -95000
+      ],
+      "end": [
+        172668,
+        -95000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "RED_ALERT",
+      "layer": 0,
+      "start": [
+        172668,
+        -95000
+      ],
+      "end": [
+        173730,
+        -95000
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        131070,
+        -109540
+      ],
+      "end": [
+        130008,
+        -109540
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        130008,
+        -109540
+      ],
+      "end": [
+        115203,
+        -109540
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        115203,
+        -109540
+      ],
+      "end": [
+        105879,
+        -100216
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        105879,
+        -100216
+      ],
+      "end": [
+        105879,
+        -98391
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        105879,
+        -98391
+      ],
+      "end": [
+        107249,
+        -97021
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_A",
+      "layer": 0,
+      "start": [
+        107249,
+        -97021
+      ],
+      "end": [
+        108000,
+        -96270
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_B",
+      "layer": 0,
+      "start": [
+        108000,
+        -121270
+      ],
+      "end": [
+        109063,
+        -121270
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_B",
+      "layer": 0,
+      "start": [
+        109063,
+        -121270
+      ],
+      "end": [
+        129500,
+        -121270
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_B",
+      "layer": 0,
+      "start": [
+        129500,
+        -121270
+      ],
+      "end": [
+        130319,
+        -120451
+      ],
+      "width": 350
+    },
+    {
+      "type": "segment",
+      "netId": "TRIG_B",
+      "layer": 0,
+      "start": [
+        130319,
+        -120451
+      ],
+      "end": [
+        131070,
+        -119700
+      ],
+      "width": 350
+    }
+  ],
+  "vias": [],
+  "planes": [],
+  "properties": [
+    {
+      "name": "layersStackup",
+      "type": "properties",
+      "value": [
+        {
+          "name": "F.SilkS",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "Top Silk Screen"
+            }
+          ]
+        },
+        {
+          "name": "F.Mask",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "Top Solder Mask"
+            },
+            {
+              "name": "thickness",
+              "type": "string",
+              "value": "0.01"
+            }
+          ]
+        },
+        {
+          "name": "F.Cu",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "copper"
+            },
+            {
+              "name": "thickness",
+              "type": "string",
+              "value": "0.035"
+            }
+          ]
+        },
+        {
+          "name": "dielectric 1",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "core"
+            },
+            {
+              "name": "thickness",
+              "type": "string",
+              "value": "1.51"
+            },
+            {
+              "name": "material",
+              "type": "string",
+              "value": "FR4"
+            },
+            {
+              "name": "epsilon_r",
+              "type": "string",
+              "value": "4.5"
+            }
+          ]
+        },
+        {
+          "name": "B.Cu",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "copper"
+            },
+            {
+              "name": "thickness",
+              "type": "string",
+              "value": "0.035"
+            }
+          ]
+        },
+        {
+          "name": "B.Mask",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "Bottom Solder Mask"
+            },
+            {
+              "name": "thickness",
+              "type": "string",
+              "value": "0.01"
+            }
+          ]
+        },
+        {
+          "name": "B.SilkS",
+          "type": "properties",
+          "value": [
+            {
+              "name": "type",
+              "type": "string",
+              "value": "Bottom Silk Screen"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SECONDS AHEAD — Telemetry Dashboard &amp; Kinematic Simulator</title>
+<style>
+/* ==========================================================================
+   CSS VARIABLES — spacing, colour, type
+   ========================================================================== */
+:root {
+  --sp-half: 4px;
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --sp-5: 40px;
+
+  --ts-label: 11px;
+  --ts-body: 13px;
+  --ts-secondary: 16px;
+  --ts-readout: clamp(22px, 1.8vw, 30px);
+  --ts-banner: clamp(28px, 3.2vw, 52px);
+
+  --c-bg: #0a0b0d;
+  --c-panel: #111214;
+  --c-inset: #0d0e10;
+  --c-border: #1e2024;
+  --c-text-1: #e8eaed;
+  --c-text-2: #9aa0ab;
+  --c-text-3: #6e7582;
+  --c-green: #3ddc84;
+  --c-amber: #f0a030;
+  --c-red: #e8362a;
+  --c-cyan: #00e5ff;
+
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ==========================================================================
+   RESET
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;height:100vh;overflow:hidden;
+  background:var(--c-bg);color:var(--c-text-2);
+  font:var(--ts-body)/1.3 var(--font-sans);
+  user-select:none;-webkit-font-smoothing:antialiased;
+}
+
+/* ==========================================================================
+   APP GRID  — 3 main rows: Header, Body (Views), Footer
+   ========================================================================== */
+#app{
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  height:100vh;width:100vw;
+  padding:var(--sp-1);gap:var(--sp-1);
+}
+#app>*{min-width:0;min-height:0}
+
+/* ==========================================================================
+   PANEL PRIMITIVE
+   ========================================================================== */
+.panel{
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+  min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:var(--sp-half) var(--sp-1);
+  border-bottom:1px solid var(--c-border);flex-shrink:0;
+}
+.panel-label{
+  font:700 var(--ts-label)/1.2 var(--font-sans);
+  text-transform:uppercase;letter-spacing:0.06em;color:var(--c-text-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.panel-val{
+  font:700 var(--ts-label)/1.2 var(--font-mono);
+  color:var(--c-text-3);flex-shrink:0;margin-left:var(--sp-1);
+  white-space:nowrap;
+}
+
+/* ==========================================================================
+   BUTTONS & CONTROLS
+   ========================================================================== */
+.btn{
+  font:700 var(--ts-label)/1 var(--font-sans);
+  text-transform:uppercase;letter-spacing:0.05em;
+  padding:var(--sp-half) var(--sp-1);
+  background:var(--c-panel);color:var(--c-text-1);
+  border:1px solid var(--c-border);border-radius:1px;
+  cursor:pointer;outline:none;white-space:nowrap;
+  transition:background .1s, border-color .1s, color .1s;
+}
+.btn:hover{background:#1a1c20;border-color:#3a3f4a}
+.btn:active{background:#080909}
+.btn-go{border-color:#3b82f6;color:#93c5fd}
+.btn-stop{border-color:var(--c-red);color:#ff9994;background:#1c0a0a}
+.btn-demo-on{border-color:var(--c-amber);color:#ffe082;background:#1a1508}
+
+.sel{
+  font:700 var(--ts-label)/1 var(--font-mono);
+  padding:3px var(--sp-half);
+  background:var(--c-panel);color:var(--c-text-1);
+  border:1px solid var(--c-border);border-radius:1px;
+  cursor:pointer;outline:none;height:24px;
+}
+.sel:focus{border-color:#3b82f6}
+.sel option{background:#111214;color:#e8eaed}
+
+/* Nav Tabs */
+.view-tabs{display:flex;align-items:center;gap:3px;margin-left:var(--sp-1)}
+.tab-btn{padding:var(--sp-half) 10px;font-weight:700;border-color:var(--c-border);color:var(--c-text-3)}
+.tab-btn.active{background:#1e293b;border-color:#3b82f6;color:#ffffff;font-weight:800}
+.btn-voice{display:flex;align-items:center;gap:4px}
+.btn-voice.active{border-color:var(--c-green);color:var(--c-green)}
+.btn-voice.active .dot{background:var(--c-green)}
+
+/* Raw Console Modal */
+.modal-wrap{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:2000;
+  padding:var(--sp-2);
+}
+.modal-card{
+  width:100%;max-width:760px;height:520px;max-height:85vh;
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:2px;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 12px 32px rgba(0,0,0,0.85);
+}
+.raw-log-body{
+  flex:1;overflow-y:auto;background:var(--c-inset);padding:var(--sp-1);
+  font:var(--ts-label)/1.45 var(--font-mono);color:var(--c-text-2);
+  white-space:pre-wrap;word-break:break-all;
+}
+.raw-line{margin-bottom:2px}
+.raw-line.tx{color:#93c5fd}
+.raw-input-row{
+  display:flex;gap:var(--sp-half);padding:var(--sp-half) var(--sp-1);
+  border-top:1px solid var(--c-border);background:var(--c-panel);
+}
+.raw-input-row input{
+  flex:1;background:var(--c-inset);border:1px solid var(--c-border);
+  color:var(--c-text-1);font:var(--ts-label) var(--font-mono);padding:4px var(--sp-1);
+  outline:none;border-radius:1px;
+}
+.raw-input-row input:focus{border-color:#3b82f6}
+
+/* ==========================================================================
+   1. TOP BAR
+   ========================================================================== */
+#top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--sp-1);height:var(--sp-4);
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+  overflow:hidden;
+}
+.top-l{display:flex;align-items:center;gap:var(--sp-1);min-width:0;overflow:hidden}
+.top-r{display:flex;align-items:center;gap:var(--sp-1);flex-shrink:0}
+.brand{
+  font:800 13px/1 var(--font-mono);letter-spacing:0.1em;color:var(--c-text-1);
+  white-space:nowrap;flex-shrink:0;
+}
+.sim-badge{
+  display:none;font:800 var(--ts-label)/1 var(--font-mono);letter-spacing:0.06em;
+  background:var(--c-amber);color:#000;padding:2px var(--sp-1);border-radius:1px;
+}
+.sim-badge.active{display:inline-block}
+.tpill{
+  display:flex;align-items:center;gap:var(--sp-half);
+  font:700 var(--ts-label)/1 var(--font-mono);color:var(--c-text-3);
+  padding:2px var(--sp-1);border:1px solid var(--c-border);border-radius:1px;
+  white-space:nowrap;overflow:hidden;
+}
+.dot{width:6px;height:6px;border-radius:1px;background:var(--c-text-3);flex-shrink:0}
+.dot.on{background:var(--c-green)}
+.dot.warn{background:var(--c-amber)}
+.dot.err{background:var(--c-red)}
+
+/* ==========================================================================
+   APP BODY & VIEW MODES
+   ========================================================================== */
+#app-body{
+  display:flex;gap:var(--sp-1);
+  min-height:0;min-width:0;height:100%;width:100%;overflow:hidden;
+}
+
+/* View mode rules */
+.mode-dash #view-dashboard{display:flex;flex:1}
+.mode-dash #view-simulator{display:none}
+
+.mode-sim #view-dashboard{display:none}
+.mode-sim #view-simulator{display:flex;flex:1}
+
+.mode-split #view-dashboard{display:flex;flex:1}
+.mode-split #view-simulator{display:flex;flex:1}
+
+/* View: Dashboard Container */
+#view-dashboard{
+  flex-direction:column;gap:var(--sp-1);min-width:0;min-height:0;overflow:hidden;
+}
+
+/* View: Incident Simulator Container */
+#view-simulator{
+  flex-direction:column;min-width:0;min-height:0;overflow:hidden;
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+}
+
+/* ==========================================================================
+   DASHBOARD SUB-COMPONENTS
+   ========================================================================== */
+/* 2. STATE BANNER */
+#state-banner{
+  padding:var(--sp-1) var(--sp-2);border-width:2px;
+  display:flex;flex-direction:column;justify-content:center;overflow:hidden;
+  flex-shrink:0;
+}
+#state-text{
+  font:900 var(--ts-banner)/1 var(--font-mono);letter-spacing:0.08em;
+  color:var(--c-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.s-wait{border-color:var(--c-border);background:#111214}
+.s-wait #state-text{color:var(--c-text-3)}
+.s-noapproach{border-color:#2a2d32;background:#111214}
+.s-noapproach #state-text{color:var(--c-text-2)}
+.s-uncertain{border-color:#4a3a1a;background:#15130f}
+.s-uncertain #state-text{color:#c8a858}
+.s-monitor{border-color:var(--c-amber);background:#1a1508}
+.s-monitor #state-text{color:var(--c-amber)}
+.s-monitor .panel-label{color:var(--c-amber)}
+
+@keyframes blink3hz{
+  0%,49.99%{background:var(--c-red);color:#000}
+  50%,100%{background:#1c0606;color:var(--c-red)}
+}
+.s-highrisk{border-color:var(--c-red);animation:blink3hz .333s steps(1,end) infinite}
+.s-highrisk .panel-label,.s-highrisk #state-text{color:inherit}
+
+/* 3. METRICS ROW — 4 cards (Dual Sensors + Speed + TTC) */
+#metrics-row{
+  display:grid;grid-template-columns:repeat(4, 1fr);gap:var(--sp-1);flex-shrink:0;
+}
+#metrics-row>*{min-width:0;min-height:0}
+.mcard{
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+  padding:var(--sp-1);display:flex;flex-direction:column;gap:var(--sp-half);
+}
+.mcard-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  overflow:hidden;
+}
+.mcard-val-row{
+  display:flex;align-items:baseline;justify-content:flex-end;gap:var(--sp-half);
+}
+.mval{
+  font:700 var(--ts-readout)/1 var(--font-mono);
+  font-variant-numeric:tabular-nums;color:var(--c-text-1);
+  text-align:right;min-width:5ch;
+}
+.munit{
+  font:700 var(--ts-label)/1 var(--font-mono);color:var(--c-text-3);flex-shrink:0;
+}
+.ttc-track{
+  height:4px;background:#181a1e;border:1px solid var(--c-border);
+  margin-top:var(--sp-half);
+}
+.ttc-fill{
+  height:100%;background:var(--c-text-2);
+  transition:width .1s linear,background-color .15s;
+}
+
+/* 4. RANGE BAR — Dual Sensor Scale */
+#range-panel{
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+  padding:var(--sp-half) var(--sp-1) var(--sp-1);
+  display:flex;flex-direction:column;gap:var(--sp-half);min-width:0;min-height:0;flex-shrink:0;
+}
+.range-head{display:flex;justify-content:space-between;align-items:center;overflow:hidden}
+.range-track{
+  position:relative;height:14px;background:#181a1e;border:1px solid var(--c-border);
+}
+.range-danger{
+  position:absolute;top:0;left:0;width:50%;height:100%;
+  background:rgba(232,54,42,0.12);border-right:1px dashed var(--c-red);
+  pointer-events:none;
+}
+.range-marker{
+  position:absolute;top:-2px;bottom:-2px;width:3px;
+  background:var(--c-text-1);transform:translateX(-50%);
+  transition:left .08s linear;z-index:2;
+}
+.range-marker-side{
+  position:absolute;top:-3px;bottom:-3px;width:3px;
+  background:var(--c-cyan);transform:translateX(-50%);
+  transition:left .08s linear;z-index:3;
+}
+.range-ticks{position:relative;height:14px;width:100%}
+.rtick{
+  position:absolute;top:4px;transform:translateX(-50%);
+  font:700 9px/1 var(--font-mono);color:var(--c-text-3);
+}
+.rtick::before{
+  content:'';position:absolute;top:-4px;left:50%;width:1px;height:3px;
+  background:var(--c-border);transform:translateX(-50%);
+}
+.rtick.rdng{color:var(--c-red);font-weight:800}
+.rtick.rdng::before{background:var(--c-red)}
+.rtick-minor{
+  position:absolute;top:0;width:1px;height:3px;
+  background:var(--c-border);transform:translateX(-50%);
+}
+
+/* 5. MAIN AREA — Charts & Tables */
+#main-area{
+  display:grid;grid-template-columns:1fr 320px;gap:var(--sp-1);
+  min-height:0;min-width:0;flex:1;
+}
+#main-area>*{min-width:0;min-height:0}
+#left-col{display:flex;flex-direction:column;gap:var(--sp-1);min-height:0}
+#left-col>*{min-width:0;min-height:0}
+#right-col{display:flex;flex-direction:column;gap:var(--sp-1);min-height:0}
+#right-col>*{min-width:0;min-height:0}
+
+/* Chart panel */
+#chart-panel{flex:1;min-height:100px}
+.chart-wrap{flex:1;position:relative;background:var(--c-inset);overflow:hidden;min-height:0}
+.chart-wrap canvas{display:block;width:100%;height:100%}
+.chart-legend{display:flex;gap:var(--sp-2);font:700 var(--ts-label)/1 var(--font-mono);color:var(--c-text-3)}
+.leg-i{display:flex;align-items:center;gap:var(--sp-half)}
+.leg-ln{display:inline-block;width:12px;height:2px}
+
+/* State timeline */
+#timeline-panel{height:30px;flex-shrink:0}
+.tl-wrap{flex:1;position:relative;background:var(--c-inset);overflow:hidden}
+.tl-wrap canvas{display:block;width:100%;height:100%}
+
+/* Lead-time panel */
+#lead-panel{flex:1.1;min-height:90px}
+.tbl-scroll{flex:1;overflow-y:auto;background:var(--c-inset)}
+.dtable{
+  width:100%;border-collapse:collapse;
+  font:var(--ts-label)/1.3 var(--font-mono);text-align:left;
+}
+.dtable th{
+  position:sticky;top:0;z-index:2;
+  background:#16181c;color:var(--c-text-3);
+  font-size:var(--ts-label);font-weight:700;letter-spacing:0.04em;
+  padding:var(--sp-half) var(--sp-1);border-bottom:1px solid var(--c-border);
+}
+.dtable td{
+  padding:3px var(--sp-1);border-bottom:1px solid #141618;
+  color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dtable tr:hover td{background:#141618}
+.pass{color:var(--c-green);font-weight:700}
+.miss{color:var(--c-red);font-weight:700}
+
+.lead-stats{
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 var(--sp-1);height:22px;
+  background:#16181c;border-top:1px solid var(--c-border);
+  font:700 var(--ts-label)/1 var(--font-mono);color:var(--c-text-3);flex-shrink:0;
+}
+.lead-stats strong{color:var(--c-text-1);margin-left:var(--sp-half)}
+.lead-chart-wrap{
+  height:48px;flex-shrink:0;background:var(--c-inset);
+  border-top:1px solid var(--c-border);position:relative;overflow:hidden;
+}
+.lead-chart-wrap canvas{display:block;width:100%;height:100%}
+
+/* Event log */
+#event-panel{flex:1;min-height:80px}
+.log-scroll{
+  flex:1;overflow-y:auto;background:var(--c-inset);padding:var(--sp-half);
+  font:var(--ts-label)/1.5 var(--font-mono);
+}
+.log-row{display:flex;gap:var(--sp-1);color:var(--c-text-2)}
+.log-ts{color:var(--c-text-3);flex-shrink:0;min-width:7ch}
+.log-msg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.log-warn .log-msg{color:var(--c-amber)}
+.log-crit .log-msg{color:var(--c-red);font-weight:700}
+.log-info .log-msg{color:var(--c-text-3)}
+
+/* ==========================================================================
+   INCIDENT SIMULATOR SUB-COMPONENTS
+   ========================================================================== */
+.sim-toolbar-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:var(--sp-half) var(--sp-1);
+  background:#14161a;border-bottom:1px solid var(--c-border);flex-shrink:0;
+  gap:var(--sp-1);overflow:hidden;
+}
+.sim-scenario-sel{
+  max-width:320px;
+}
+.sim-canvas-wrap{
+  flex:1;position:relative;background:#07080a;overflow:hidden;min-height:0;
+}
+.sim-canvas-wrap canvas{
+  display:block;width:100%;height:100%;
+}
+.sim-toolbar-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:var(--sp-half) var(--sp-1);
+  background:#14161a;border-top:1px solid var(--c-border);flex-shrink:0;
+  gap:var(--sp-1);overflow:hidden;
+}
+.sim-slider{
+  flex:1;accent-color:#3b82f6;cursor:pointer;height:4px;outline:none;
+}
+.btn-speed.active{
+  background:#1e3a8a;border-color:#3b82f6;color:#93c5fd;font-weight:800;
+}
+
+/* ==========================================================================
+   6. FOOTER
+   ========================================================================== */
+#footer-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--sp-1);height:28px;
+  background:var(--c-panel);border:1px solid var(--c-border);border-radius:1px;
+  font:700 var(--ts-label)/1 var(--font-mono);color:var(--c-text-3);
+  overflow:hidden;
+}
+.foot-l{display:flex;align-items:center;gap:var(--sp-2);overflow:hidden;min-width:0}
+.foot-l strong{color:var(--c-text-1)}
+.foot-r{display:flex;align-items:center;gap:var(--sp-1);flex-shrink:0}
+
+/* Unsupported banner */
+#unsup{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:#7f1d1d;color:#fff;padding:var(--sp-1) var(--sp-2);
+  font:600 var(--ts-body)/1.3 var(--font-sans);text-align:center;
+  border-bottom:1px solid #ef4444;
+}
+</style>
+</head>
+<body class="mode-dash">
+
+<div id="unsup">Web Serial API not supported. Use Chrome, Edge or Opera. Demo Mode available.</div>
+
+<div id="app">
+
+  <!-- RAW SERIAL MONITOR MODAL -->
+  <div id="raw-modal" class="modal-wrap" style="display:none">
+    <div class="modal-card">
+      <div class="panel-head">
+        <span class="panel-label">RAW SERIAL MONITOR</span>
+        <div style="display:flex;gap:var(--sp-1);align-items:center">
+          <label style="font:700 var(--ts-label) var(--font-mono);display:flex;gap:4px;align-items:center;cursor:pointer;color:var(--c-text-3)">
+            <input type="checkbox" id="raw-autoscroll" checked> AUTO-SCROLL
+          </label>
+          <button id="btn-raw-clear" class="btn">CLEAR</button>
+          <button id="btn-raw-close" class="btn">CLOSE</button>
+        </div>
+      </div>
+      <div id="raw-log" class="raw-log-body"></div>
+      <div class="raw-input-row">
+        <input type="text" id="raw-send-input" placeholder="Send command to ESP32 (e.g. MUTE, RESET)..." />
+        <button id="btn-raw-send" class="btn btn-go">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ELEVENLABS CONFIG MODAL -->
+  <div id="eleven-modal" class="modal-wrap" style="display:none">
+    <div class="modal-card" style="max-width:540px;height:auto">
+      <div class="panel-head">
+        <span class="panel-label">⚡ ELEVENLABS NEURAL VOICE CONFIG</span>
+        <button id="btn-eleven-close" class="btn">CLOSE</button>
+      </div>
+      <div style="padding:var(--sp-2);display:flex;flex-direction:column;gap:var(--sp-1);font:var(--ts-body) var(--font-sans)">
+        <div style="font:var(--ts-label) var(--font-mono);color:var(--c-text-3)">
+          Connect your ElevenLabs Creator Plan for ultra-realistic neural cockpit speech warnings.
+        </div>
+        
+        <label style="display:flex;flex-direction:column;gap:4px;font:700 var(--ts-label) var(--font-mono);color:var(--c-text-2)">
+          ELEVENLABS API KEY (xi-api-key):
+          <input type="password" id="eleven-key-input" placeholder="Enter your ElevenLabs API key..." style="background:var(--c-inset);border:1px solid var(--c-border);color:var(--c-text-1);font:var(--ts-label) var(--font-mono);padding:6px var(--sp-1);border-radius:1px;outline:none" />
+        </label>
+
+        <label style="display:flex;flex-direction:column;gap:4px;font:700 var(--ts-label) var(--font-mono);color:var(--c-text-2)">
+          VOICE:
+          <select id="eleven-voice-sel" class="sel" style="height:28px">
+            <option value="21m00Tcm4TlvDq8ikWAM" selected>Rachel (Calm &amp; Authoritative)</option>
+            <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep Dynamic Warning)</option>
+            <option value="EXAVITQu4vr4xnSDxMaL">Bella (Crisp Cockpit Alert)</option>
+            <option value="ErXwobaYiN019PkySvjV">Antoni (Urgent Emergency)</option>
+            <option value="custom">Custom Voice ID...</option>
+          </select>
+        </label>
+        
+        <div id="eleven-custom-wrap" style="display:none;flex-direction:column;gap:4px">
+          <span style="font:700 var(--ts-label) var(--font-mono);color:var(--c-text-2)">CUSTOM VOICE ID:</span>
+          <input type="text" id="eleven-custom-voice" placeholder="Enter Voice ID..." style="background:var(--c-inset);border:1px solid var(--c-border);color:var(--c-text-1);font:var(--ts-label) var(--font-mono);padding:6px var(--sp-1);border-radius:1px;outline:none" />
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:4px;font:700 var(--ts-label) var(--font-mono);color:var(--c-text-2)">
+          MODEL:
+          <select id="eleven-model-sel" class="sel" style="height:28px">
+            <option value="eleven_turbo_v2_5" selected>Eleven Turbo v2.5 (Fastest / Ultra-Low Latency)</option>
+            <option value="eleven_multilingual_v2">Eleven Multilingual v2</option>
+            <option value="eleven_monolingual_v1">Eleven Monolingual v1</option>
+          </select>
+        </label>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--sp-1)">
+          <div style="font:700 10px var(--font-mono);color:var(--c-green)" id="eleven-status-text">
+            Ready (Falls back to Web Speech if key not set)
+          </div>
+          <div style="display:flex;gap:var(--sp-half)">
+            <button id="btn-eleven-test" class="btn btn-go">TEST VOICE</button>
+            <button id="btn-eleven-save" class="btn" style="border-color:#38bdf8;color:#38bdf8">SAVE &amp; ACTIVATE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. TOP BAR -->
+  <header id="top-bar">
+    <div class="top-l">
+      <span class="brand">SECONDS AHEAD</span>
+      <span id="sim-badge" class="sim-badge">SIMULATED</span>
+      <div class="view-tabs">
+        <button id="tab-dash" class="btn tab-btn active">DASHBOARD</button>
+        <button id="tab-sim" class="btn tab-btn">INCIDENT SIMULATOR</button>
+        <button id="tab-split" class="btn tab-btn">SPLIT VIEW</button>
+        <button id="btn-voice" class="btn btn-voice active" title="Voice Alert AI Active (ElevenLabs)"><span class="dot on" id="voice-dot"></span> 🎙 VOICE AI</button>
+        <select id="voice-lang-sel" class="sel" title="Voice Alert Language" style="height:24px">
+          <option value="en" selected>🌐 English</option>
+          <option value="hi">🌐 हिंदी (Hindi)</option>
+          <option value="kn">🌐 ಕನ್ನಡ (Kannada)</option>
+        </select>
+        <button id="btn-eleven-cfg" class="btn" title="Configure ElevenLabs Neural Voice" style="border-color:#38bdf8;color:#38bdf8;background:rgba(56,189,248,0.1)">⚡ ELEVENLABS (CREATOR)</button>
+      </div>
+    </div>
+    <div class="top-r">
+      <div class="tpill"><span class="dot" id="conn-dot"></span><span id="conn-label">DISCONNECTED</span></div>
+      <div class="tpill"><span class="panel-label">RATE</span><span id="rate-val">0 pps</span></div>
+      <div class="tpill"><span class="panel-label">UPTIME</span><span id="uptime-val">00:00:00</span></div>
+      <select id="baud-sel" class="sel" title="Serial Baud Rate">
+        <option value="9600">9600</option>
+        <option value="57600">57600</option>
+        <option value="115200" selected>115200</option>
+        <option value="230400">230400</option>
+        <option value="460800">460800</option>
+        <option value="921600">921600</option>
+      </select>
+      <button id="btn-connect" class="btn btn-go">CONNECT</button>
+      <button id="btn-demo" class="btn">DEMO</button>
+      <button id="btn-console" class="btn" title="Toggle Raw Serial Console">CONSOLE</button>
+    </div>
+  </header>
+
+  <!-- APP BODY (VIEWS CONTAINER) -->
+  <div id="app-body">
+
+    <!-- VIEW 1: TELEMETRY DASHBOARD -->
+    <div id="view-dashboard">
+
+      <!-- 2. STATE BANNER -->
+      <div id="state-banner" class="panel s-wait">
+        <span class="panel-label">STATE</span>
+        <span id="state-text">WAIT</span>
+      </div>
+
+      <!-- 3. METRICS ROW — 4 CARDS WITH SENSOR A AND SENSOR B -->
+      <div id="metrics-row">
+        <div class="mcard">
+          <div class="mcard-head">
+            <span class="panel-label">FRONT DIST (A)</span>
+            <span class="munit">cm</span>
+          </div>
+          <div class="mcard-val-row"><span class="mval" id="v-dist">--.-</span></div>
+        </div>
+        <div class="mcard">
+          <div class="mcard-head">
+            <span class="panel-label" style="color:var(--c-cyan)">LATERAL DIST (B)</span>
+            <span class="munit" style="color:var(--c-cyan)">cm</span>
+          </div>
+          <div class="mcard-val-row"><span class="mval" id="v-side" style="color:var(--c-cyan)">--.-</span></div>
+        </div>
+        <div class="mcard">
+          <div class="mcard-head">
+            <span class="panel-label">APPROACH SPEED</span>
+            <span class="munit">cm/s</span>
+          </div>
+          <div class="mcard-val-row"><span class="mval" id="v-spd">--.-</span></div>
+        </div>
+        <div class="mcard">
+          <div class="mcard-head">
+            <span class="panel-label">TIME TO COLLISION</span>
+            <span class="munit">s</span>
+          </div>
+          <div class="mcard-val-row"><span class="mval" id="v-ttc">--</span></div>
+          <div class="ttc-track"><div class="ttc-fill" id="ttc-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- 4. RANGE BAR — DUAL SENSOR PROXIMITY SCALE -->
+      <div id="range-panel">
+        <div class="range-head">
+          <span class="panel-label">PROXIMITY SCALE (0-100 cm)</span>
+          <div style="display:flex;gap:var(--sp-2);align-items:center">
+            <span style="font:700 11px var(--font-mono);color:var(--c-text-1)">
+              <span style="display:inline-block;width:7px;height:7px;background:var(--c-text-1);margin-right:4px"></span>A (FRONT): <strong id="range-readout">-- cm</strong>
+            </span>
+            <span style="font:700 11px var(--font-mono);color:var(--c-cyan)">
+              <span style="display:inline-block;width:7px;height:7px;background:var(--c-cyan);margin-right:4px"></span>B (LATERAL): <strong id="range-readout-side">-- cm</strong>
+            </span>
+          </div>
+        </div>
+        <div class="range-track" id="range-track">
+          <div class="range-danger"></div>
+          <div class="range-marker" id="range-marker" style="left:100%" title="Front Sensor (A)"></div>
+          <div class="range-marker-side" id="range-marker-side" style="left:100%" title="Lateral Sensor (B)"></div>
+        </div>
+        <div class="range-ticks">
+          <span class="rtick" style="left:0%">0</span>
+          <div class="rtick-minor" style="left:10%"></div>
+          <span class="rtick" style="left:20%">20</span>
+          <div class="rtick-minor" style="left:30%"></div>
+          <span class="rtick" style="left:40%">40</span>
+          <span class="rtick rdng" style="left:50%">50</span>
+          <span class="rtick" style="left:60%">60</span>
+          <div class="rtick-minor" style="left:70%"></div>
+          <span class="rtick" style="left:80%">80</span>
+          <div class="rtick-minor" style="left:90%"></div>
+          <span class="rtick" style="left:100%">100</span>
+        </div>
+      </div>
+
+      <!-- 5. MAIN AREA -->
+      <div id="main-area">
+        <!-- LEFT: Strip Chart & State Timeline -->
+        <div id="left-col">
+          <div id="chart-panel" class="panel">
+            <div class="panel-head">
+              <span class="panel-label">STRIP CHART — 30 s</span>
+              <div class="chart-legend">
+                <div class="leg-i"><span class="leg-ln" style="background:#e8eaed"></span>FRONT (A)</div>
+                <div class="leg-i"><span class="leg-ln" style="background:var(--c-cyan)"></span>LATERAL (B)</div>
+                <div class="leg-i"><span class="leg-ln" style="background:#f0a030;border-top:1px dashed #f0a030"></span>SPEED</div>
+                <div class="leg-i"><span class="leg-ln" style="background:#e8362a;border-top:1px dashed #e8362a"></span>50 cm</div>
+              </div>
+            </div>
+            <div class="chart-wrap" id="chart-wrap"><canvas id="chart-cv"></canvas></div>
+          </div>
+          <div id="timeline-panel" class="panel">
+            <div class="panel-head">
+              <span class="panel-label">STATE HISTORY — 60 s</span>
+            </div>
+            <div class="tl-wrap" id="tl-wrap"><canvas id="tl-cv"></canvas></div>
+          </div>
+        </div>
+        <!-- RIGHT: Lead Time & Event Log -->
+        <div id="right-col">
+          <div id="lead-panel" class="panel">
+            <div class="panel-head">
+              <span class="panel-label">IR LEAD TIME</span>
+              <span class="panel-val" id="lead-count">0 runs</span>
+            </div>
+            <div class="tbl-scroll">
+              <table class="dtable">
+                <thead><tr><th style="width:42px">#</th><th style="width:68px">TIME</th><th>LEAD</th><th>STATUS</th></tr></thead>
+                <tbody id="lead-tbody"></tbody>
+              </table>
+            </div>
+            <div class="lead-stats">
+              <span>RUNS<strong id="ls-n">0</strong></span>
+              <span>MEDIAN<strong id="ls-med">--</strong></span>
+              <span>MIN<strong id="ls-min">--</strong></span>
+              <span>MAX<strong id="ls-max">--</strong></span>
+              <span>MISS<strong id="ls-miss">0</strong></span>
+            </div>
+            <div class="lead-chart-wrap" id="lc-wrap"><canvas id="lc-cv"></canvas></div>
+          </div>
+          <div id="event-panel" class="panel">
+            <div class="panel-head">
+              <span class="panel-label">EVENT LOG</span>
+              <span class="panel-val" id="evt-count">0</span>
+            </div>
+            <div class="log-scroll" id="evt-scroll"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /#view-dashboard -->
+
+    <!-- VIEW 2: 2D KINEMATIC INCIDENT SIMULATOR -->
+    <div id="view-simulator">
+      <!-- Top Simulator Toolbar -->
+      <div class="sim-toolbar-top">
+        <div style="display:flex;align-items:center;gap:var(--sp-1)">
+          <span class="panel-label">SCENARIO:</span>
+          <select id="sim-scenario-sel" class="sel sim-scenario-sel">
+            <option value="headon">Scenario 1: Head-On Approach (100cm → 14cm Contact)</option>
+            <option value="lateral">Scenario 2: Lateral Intersection Intrusion (Side Blind-Spot)</option>
+            <option value="dual">Scenario 3: Multi-Threat Dual Approach (Front &amp; Lateral)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--sp-half)">
+          <span class="tpill" id="sim-status-pill"><span class="dot on"></span> <span id="sim-status-text">LIVE SENSOR</span></span>
+          <button id="btn-sim-play" class="btn btn-go">▶ PLAY VIDEO</button>
+          <button id="btn-sim-live" class="btn btn-demo-on">● LIVE SENSOR</button>
+          <button id="btn-sim-record" class="btn" title="Record WebM clip of simulation">🎬 RECORD CLIP</button>
+          <button id="btn-sim-reset" class="btn">RESET</button>
+        </div>
+      </div>
+
+      <!-- 2D Canvas Area -->
+      <div class="sim-canvas-wrap" id="sim-canvas-wrap">
+        <canvas id="sim-canvas"></canvas>
+      </div>
+
+      <!-- Bottom Playback & Scrubber Toolbar -->
+      <div class="sim-toolbar-bottom">
+        <div style="display:flex;align-items:center;gap:var(--sp-1);flex:1">
+          <span style="font:700 11px var(--font-mono);color:var(--c-text-3);min-width:55px" id="sim-time-text">00:00.00</span>
+          <input type="range" id="sim-scrubber" min="0" max="100" value="0" class="sim-slider" />
+          <span style="font:700 11px var(--font-mono);color:var(--c-text-3);min-width:55px" id="sim-dur-text">00:06.00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--sp-half);flex-shrink:0">
+          <span style="font:700 10px var(--font-mono);color:var(--c-text-3)">SPEED:</span>
+          <button class="btn btn-speed" data-speed="0.5">0.5X</button>
+          <button class="btn btn-speed active" data-speed="1.0">1X</button>
+          <button class="btn btn-speed" data-speed="2.0">2X</button>
+        </div>
+      </div>
+    </div><!-- /#view-simulator -->
+
+  </div><!-- /#app-body -->
+
+  <!-- 6. FOOTER -->
+  <footer id="footer-bar">
+    <div class="foot-l">
+      <span>BUFFER <strong id="buf-n">0</strong>/5000</span>
+      <span>IR CONTACT <strong id="ir-st" style="color:var(--c-green)">CLEAR</strong></span>
+      <span>BUZZER <strong id="bz-st">ARMED</strong></span>
+    </div>
+    <div class="foot-r">
+      <button id="btn-export" class="btn">EXPORT CSV</button>
+      <button id="btn-clear" class="btn">CLEAR</button>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ==========================================================================
+   CONFIG
+   ========================================================================== */
+const CFG = {
+  BAUD: 115200,
+  RING_MAX: 5000,
+  WATCHDOG_MS: 2000,
+  CHART_WIN_MS: 30000,
+  RANGE_MIN: 2,
+  RANGE_MAX: 100,
+  DANGER_CM: 50,
+  TTC_CRIT_S: 3.0,
+  TTC_BAR_MAX: 5.0,
+  LOG_MAX: 500
+};
+
+/* ==========================================================================
+   TELEMETRY STATE
+   ========================================================================== */
+const T = {
+  connected: false,
+  isDemo: false,
+  port: null,
+  reader: null,
+  keepReading: false,
+
+  uptimeMs: 0,
+  distance: null,    // Sensor A (Front)
+  sideDist: null,    // Sensor B (Lateral)
+  speed: null,
+  ttc: null,
+  state: 'WAIT',
+  ir: 1,
+  muted: 0,
+
+  packetCount: 0,
+  lastPacketTime: 0,
+  pps: 0,
+  ppsCounter: 0,
+  lastPpsCheck: performance.now(),
+
+  lastState: null,
+  lastIr: 1,
+  lastSide: null,
+  ringBuffer: [],
+  chartPoints: [],
+
+  irHits: [],
+
+  demoId: null,
+  demoTimeMs: 0,
+  demoStep: 0,
+  demoDist: 100,
+  demoSide: 85,
+  demoSpd: 16,
+  demoWarnStart: 0
+};
+
+/* State history for timeline */
+const stateHist = []; // {t, state}
+let lastHistState = null;
+
+/* ==========================================================================
+   DOM CACHE
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const UI = {
+  tabDash:  $('tab-dash'),
+  tabSim:   $('tab-sim'),
+  tabSplit: $('tab-split'),
+  btnVoice: $('btn-voice'),
+  voiceDot: $('voice-dot'),
+  voiceLangSel: $('voice-lang-sel'),
+
+  connDot:    $('conn-dot'),
+  connLabel:  $('conn-label'),
+  rateVal:    $('rate-val'),
+  uptimeVal:  $('uptime-val'),
+  baudSel:    $('baud-sel'),
+  btnConnect: $('btn-connect'),
+  btnDemo:    $('btn-demo'),
+  btnConsole: $('btn-console'),
+  simBadge:   $('sim-badge'),
+
+  rawModal:      $('raw-modal'),
+  rawLog:        $('raw-log'),
+  rawAutoScroll: $('raw-autoscroll'),
+  btnRawClear:   $('btn-raw-clear'),
+  btnRawClose:   $('btn-raw-close'),
+  rawSendInput:  $('raw-send-input'),
+  btnRawSend:    $('btn-raw-send'),
+
+  stateBanner: $('state-banner'),
+  stateText:   $('state-text'),
+
+  vDist: $('v-dist'),
+  vSide: $('v-side'),
+  vSpd:  $('v-spd'),
+  vTtc:  $('v-ttc'),
+  ttcFill: $('ttc-fill'),
+
+  rangeMarker:     $('range-marker'),
+  rangeMarkerSide: $('range-marker-side'),
+  rangeReadout:    $('range-readout'),
+  rangeReadoutSide:$('range-readout-side'),
+
+  leadTbody: $('lead-tbody'),
+  leadCount: $('lead-count'),
+  lsN:    $('ls-n'),
+  lsMed:  $('ls-med'),
+  lsMin:  $('ls-min'),
+  lsMax:  $('ls-max'),
+  lsMiss: $('ls-miss'),
+
+  evtScroll: $('evt-scroll'),
+  evtCount:  $('evt-count'),
+
+  bufN: $('buf-n'),
+  irSt: $('ir-st'),
+  bzSt: $('bz-st'),
+
+  btnExport: $('btn-export'),
+  btnClear:  $('btn-clear'),
+
+  chartCv:   $('chart-cv'),
+  tlCv:      $('tl-cv'),
+  lcCv:      $('lc-cv'),
+  chartWrap: $('chart-wrap'),
+  tlWrap:    $('tl-wrap'),
+  lcWrap:    $('lc-wrap'),
+
+  // Simulator Elements
+  simCanvasWrap:  $('sim-canvas-wrap'),
+  simCanvas:      $('sim-canvas'),
+  simScenarioSel: $('sim-scenario-sel'),
+  simStatusPill:  $('sim-status-pill'),
+  simStatusText:  $('sim-status-text'),
+  btnSimPlay:     $('btn-sim-play'),
+  btnSimLive:     $('btn-sim-live'),
+  btnSimRecord:   $('btn-sim-record'),
+  btnSimReset:    $('btn-sim-reset'),
+  simScrubber:    $('sim-scrubber'),
+  simTimeText:    $('sim-time-text'),
+  simDurText:     $('sim-dur-text'),
+  speedBtns:      document.querySelectorAll('.btn-speed'),
+  unsup:          $('unsup'),
+
+  // ElevenLabs Elements
+  btnElevenCfg:      $('btn-eleven-cfg'),
+  elevenModal:       $('eleven-modal'),
+  btnElevenClose:    $('btn-eleven-close'),
+  elevenKeyInput:    $('eleven-key-input'),
+  elevenVoiceSel:    $('eleven-voice-sel'),
+  elevenCustomWrap:  $('eleven-custom-wrap'),
+  elevenCustomVoice: $('eleven-custom-voice'),
+  elevenModelSel:    $('eleven-model-sel'),
+  btnElevenTest:     $('btn-eleven-test'),
+  btnElevenSave:     $('btn-eleven-save'),
+  elevenStatusText:  $('eleven-status-text')
+};
+
+/* Format helpers */
+function fmtUp(ms) {
+  if (isNaN(ms) || ms < 0) return '00:00:00';
+  const s = Math.floor(ms / 1000);
+  return String(Math.floor(s/3600)).padStart(2,'0') + ':' + String(Math.floor(s/60)%60).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+function fmtShort(ms) {
+  if (isNaN(ms) || ms < 0) return '00:00.00';
+  const cs = Math.floor((ms % 1000) / 10);
+  const ts = Math.floor(ms / 1000);
+  return String(Math.floor(ts/60)).padStart(2,'0') + ':' + String(ts%60).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
+}
+
+/* Change-gated text update */
+const _prev = {};
+function setText(el, v) {
+  const k = el.id || el;
+  if (_prev[k] !== v) { el.textContent = v; _prev[k] = v; }
+}
+
+/* ==========================================================================
+   EVENT LOG
+   ========================================================================== */
+let evtTotal = 0;
+function addLog(msg, type) {
+  evtTotal++;
+  setText(UI.evtCount, String(evtTotal));
+  const row = document.createElement('div');
+  row.className = 'log-row' + (type === 'warn' ? ' log-warn' : type === 'crit' ? ' log-crit' : ' log-info');
+  const ts = document.createElement('span');
+  ts.className = 'log-ts';
+  ts.textContent = fmtShort(T.uptimeMs);
+  const m = document.createElement('span');
+  m.className = 'log-msg';
+  m.textContent = msg;
+  row.appendChild(ts);
+  row.appendChild(m);
+  UI.evtScroll.appendChild(row);
+  if (UI.evtScroll.childElementCount > CFG.LOG_MAX) UI.evtScroll.removeChild(UI.evtScroll.firstChild);
+  UI.evtScroll.scrollTop = UI.evtScroll.scrollHeight;
+}
+
+/* ==========================================================================
+   RAW SERIAL MONITOR
+   ========================================================================== */
+const RAW_MAX = 300;
+const rawHistory = [];
+
+function appendRawConsole(text, isTx) {
+  rawHistory.push({ text, isTx });
+  if (rawHistory.length > RAW_MAX) rawHistory.shift();
+  if (UI.rawModal && UI.rawModal.style.display !== 'none') {
+    const line = document.createElement('div');
+    line.className = 'raw-line' + (isTx ? ' tx' : '');
+    line.textContent = text;
+    UI.rawLog.appendChild(line);
+    if (UI.rawLog.childElementCount > RAW_MAX) {
+      UI.rawLog.removeChild(UI.rawLog.firstChild);
+    }
+    if (UI.rawAutoScroll.checked) {
+      UI.rawLog.scrollTop = UI.rawLog.scrollHeight;
+    }
+  }
+}
+
+function openRawModal() {
+  UI.rawModal.style.display = 'flex';
+  UI.rawLog.innerHTML = '';
+  for (const item of rawHistory) {
+    const div = document.createElement('div');
+    div.className = 'raw-line' + (item.isTx ? ' tx' : '');
+    div.textContent = item.text;
+    UI.rawLog.appendChild(div);
+  }
+  UI.rawLog.scrollTop = UI.rawLog.scrollHeight;
+  UI.rawSendInput.focus();
+}
+
+function closeRawModal() {
+  UI.rawModal.style.display = 'none';
+}
+
+async function sendSerial(txt) {
+  if (!txt) return;
+  if (!T.port || !T.port.writable) {
+    addLog('Cannot send: Serial port not connected or not writable.', 'warn');
+    appendRawConsole('[ERROR: Port not writable] ' + txt, true);
+    return;
+  }
+  try {
+    const enc = new TextEncoder();
+    const writer = T.port.writable.getWriter();
+    await writer.write(enc.encode(txt + '\n'));
+    writer.releaseLock();
+    addLog('TX \u2192 ' + txt, 'info');
+    appendRawConsole('TX \u2192 ' + txt, true);
+  } catch (err) {
+    addLog('TX error: ' + err.message, 'crit');
+    appendRawConsole('[TX ERROR] ' + err.message, true);
+  }
+}
+
+/* ==========================================================================
+   LEAD-TIME TABLE & STATS
+   ========================================================================== */
+function recordIrHit(leadMs, isMiss) {
+  const run = T.irHits.length + 1;
+  const rec = { run, uptimeMs: T.uptimeMs, leadMs: isMiss ? null : leadMs, isMiss };
+  T.irHits.push(rec);
+
+  const tr = document.createElement('tr');
+  const c1 = document.createElement('td'); c1.textContent = '#' + String(run).padStart(2,'0');
+  const c2 = document.createElement('td'); c2.textContent = fmtShort(rec.uptimeMs);
+  const c3 = document.createElement('td');
+  c3.textContent = isMiss ? '--' : rec.leadMs.toFixed(0) + ' ms';
+  c3.className = isMiss ? 'miss' : '';
+  const c4 = document.createElement('td');
+  c4.textContent = isMiss ? 'MISS' : 'PASS';
+  c4.className = isMiss ? 'miss' : 'pass';
+  tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+  UI.leadTbody.insertBefore(tr, UI.leadTbody.firstChild);
+
+  computeLeadStats();
+}
+
+function computeLeadStats() {
+  const h = T.irHits;
+  setText(UI.leadCount, h.length + ' runs');
+  setText(UI.lsN, String(h.length));
+  const misses = h.filter(x => x.isMiss).length;
+  setText(UI.lsMiss, String(misses));
+  const vals = h.filter(x => !x.isMiss && x.leadMs !== null).map(x => x.leadMs).sort((a,b) => a - b);
+  if (!vals.length) {
+    setText(UI.lsMed, '--'); setText(UI.lsMin, '--'); setText(UI.lsMax, '--');
+    return;
+  }
+  const mid = Math.floor(vals.length / 2);
+  const med = vals.length % 2 === 0 ? (vals[mid-1]+vals[mid])/2 : vals[mid];
+  setText(UI.lsMin, vals[0].toFixed(0) + ' ms');
+  setText(UI.lsMax, vals[vals.length-1].toFixed(0) + ' ms');
+  setText(UI.lsMed, med.toFixed(0) + ' ms');
+}
+
+/* ==========================================================================
+   VOICE ALERT AI (TRILINGUAL: ENGLISH / HINDI / KANNADA + ELEVENLABS)
+   ========================================================================== */
+let voiceEnabled = true;
+let lastVoiceTime = 0;
+
+let elevenApiKey = localStorage.getItem('eleven_api_key') || 'sk_c46ed6e492939f13a77c78de07a89603995d6752c1990140';
+let elevenVoiceId = localStorage.getItem('eleven_voice_id') || '21m00Tcm4TlvDq8ikWAM';
+let elevenModelId = localStorage.getItem('eleven_model_id') || 'eleven_turbo_v2_5';
+let currentVoiceLang = localStorage.getItem('voice_lang') || 'en';
+const elevenCache = {};
+
+/* Professional, non-ragebaiting automotive safety voice packs */
+const VOICE_PACKS = {
+  en: {
+    name: 'English',
+    langTag: 'en-IN',
+    init: 'Collision warning system active.',
+    high_risk: 'Caution. Collision risk ahead. Please brake.',
+    monitor: 'Vehicle approaching ahead.',
+    lateral: 'Caution. Vehicle in side blind spot.'
+  },
+  hi: {
+    name: 'हिंदी (Hindi)',
+    langTag: 'hi-IN',
+    init: 'टक्कर चेतावनी प्रणाली सक्रिय है।',
+    high_risk: 'सावधान। आगे टक्कर का ख़तरा है। कृपया ब्रेक लगाएं।',
+    monitor: 'आगे से वाहन आ रहा है।',
+    lateral: 'सावधान। बगल में वाहन आ रहा है।'
+  },
+  kn: {
+    name: 'ಕನ್ನಡ (Kannada)',
+    langTag: 'kn-IN',
+    init: 'ಡಿಕ್ಕಿ ಎಚ್ಚರಿಕೆ ವ್ಯವಸ್ಥೆ ಸಕ್ರಿಯವಾಗಿದೆ.',
+    high_risk: 'ಎಚ್ಚರಿಕೆ. ಮುಂದೆ ಡಿಕ್ಕಿಯಾಗುವ ಸಾಧ್ಯತೆಯಿದೆ. ದಯವಿಟ್ಟು ಬ್ರೇಕ್ ಹಾಕಿ.',
+    monitor: 'ಮುಂದೆ ವಾಹನ ಸಮೀಪಿಸುತ್ತಿದೆ.',
+    lateral: 'ಎಚ್ಚರಿಕೆ. ಪಕ್ಕದ ಬ್ಲೈಂಡ್ ಸ್ಪಾಟ್‌ನಲ್ಲಿ ವಾಹನವಿದೆ.'
+  }
+};
+
+async function triggerVoiceAlert(alertKey) {
+  if (!voiceEnabled) return;
+  const pack = VOICE_PACKS[currentVoiceLang] || VOICE_PACKS.en;
+  const text = pack[alertKey] || alertKey;
+  await speakAlert(text, pack.langTag);
+}
+
+async function speakAlert(text, langTag) {
+  if (!voiceEnabled || !text) return;
+  const now = performance.now();
+  if (now - lastVoiceTime < 2600) return; // Debounce 2.6s
+  lastVoiceTime = now;
+
+  const cacheKey = currentVoiceLang + ':' + text;
+
+  // 1. Try ElevenLabs Neural Voice if API Key is configured
+  if (elevenApiKey) {
+    try {
+      if (elevenCache[cacheKey]) {
+        const audio = new Audio(elevenCache[cacheKey]);
+        audio.play();
+        return;
+      }
+
+      const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + elevenVoiceId, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elevenApiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: elevenModelId,
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.85
+          }
+        })
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        elevenCache[cacheKey] = url; // Cache phrase for zero latency
+        const audio = new Audio(url);
+        audio.play();
+        return;
+      } else {
+        const err = await res.text();
+        console.warn('ElevenLabs API response error:', err);
+      }
+    } catch (err) {
+      console.warn('ElevenLabs fetch failed, using fallback:', err);
+    }
+  }
+
+  // 2. Seamless Fallback: Native Browser Web Speech API
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = langTag || (VOICE_PACKS[currentVoiceLang] ? VOICE_PACKS[currentVoiceLang].langTag : 'en-IN');
+      u.rate = 1.05; u.pitch = 1.0; u.volume = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+}
+
+/* ==========================================================================
+   SERIAL PROTOCOL PARSER
+   ========================================================================== */
+function processLine(rawLine) {
+  if (!rawLine) return;
+  const line = rawLine.trim();
+  if (!line) return;
+
+  if (line.toLowerCase().startsWith('ms,dist,speed,ttc')) { appendRawConsole(line); return; }
+
+  if (line.startsWith('IR_HIT,lead_ms=')) {
+    appendRawConsole(line);
+    const m = line.match(/^IR_HIT,lead_ms=(\d+)/);
+    if (m) {
+      const lead = parseInt(m[1], 10);
+      recordIrHit(lead, false);
+      addLog('IR CONTACT — Lead ' + lead + ' ms (' + (lead/1000).toFixed(2) + ' s)', 'crit');
+      Sim.triggerShockwave();
+    }
+    return;
+  }
+  if (line.includes('IR_HIT,no_warning_before_contact')) {
+    appendRawConsole(line);
+    recordIrHit(null, true);
+    addLog('IR CONTACT — NO WARNING (MISS)', 'crit');
+    Sim.triggerShockwave();
+    return;
+  }
+
+  const parts = line.split(',');
+  if (parts.length >= 7) {
+    const ms = parseInt(parts[0], 10);
+    const dist = parseFloat(parts[1]);
+    const speed = parseFloat(parts[2]);
+    const ttc = parseFloat(parts[3]);
+    const state = parts[4].trim().toUpperCase();
+    const ir = parseInt(parts[5], 10);
+    const muted = parseInt(parts[6], 10);
+    const sideDist = parts.length >= 8 ? parseFloat(parts[7]) : null;
+
+    if (!isNaN(ms) && !isNaN(dist) && !isNaN(speed) && !isNaN(ttc)) {
+      appendRawConsole(line);
+      handleSample(ms, dist, speed, ttc, state, ir, muted, sideDist);
+      return;
+    }
+  }
+  appendRawConsole(line);
+}
+
+function handleSample(ms, dist, speed, ttc, state, ir, muted, sideDist) {
+  T.uptimeMs = ms;
+  T.distance = dist;
+  T.speed = speed;
+  T.ttc = ttc;
+  T.state = state;
+  T.ir = ir;
+  T.muted = muted;
+  T.sideDist = (sideDist !== null && !isNaN(sideDist)) ? sideDist : null;
+  T.lastPacketTime = performance.now();
+  T.packetCount++;
+  T.ppsCounter++;
+
+  /* Voice AI triggers */
+  if (state === 'HIGH RISK' && T.lastState !== 'HIGH RISK') {
+    triggerVoiceAlert('high_risk');
+  } else if (state === 'MONITOR' && T.lastState !== 'MONITOR' && T.lastState !== 'HIGH RISK') {
+    triggerVoiceAlert('monitor');
+  } else if (T.sideDist !== null && T.sideDist < 50 && (T.lastSide === null || T.lastSide >= 50)) {
+    triggerVoiceAlert('lateral');
+  }
+  T.lastSide = T.sideDist;
+
+  /* State transition log */
+  if (T.lastState !== null && T.lastState !== state) {
+    const ttcStr = ttc < 0 ? '--' : ttc.toFixed(2) + ' s';
+    const lt = state === 'HIGH RISK' ? 'crit' : state === 'MONITOR' ? 'warn' : 'info';
+    addLog(T.lastState + ' \u2192 ' + state + ' at ' + dist.toFixed(1) + ' cm, TTC ' + ttcStr, lt);
+  }
+  T.lastState = state;
+
+  /* State history */
+  if (state !== lastHistState) {
+    stateHist.push({ t: ms, state });
+    lastHistState = state;
+  }
+  const hCut = ms - 65000;
+  while (stateHist.length > 1 && stateHist[1].t < hCut) stateHist.shift();
+
+  /* IR edge */
+  if (T.lastIr === 1 && ir === 0) {
+    UI.irSt.textContent = 'TRIGGERED'; UI.irSt.style.color = 'var(--c-red)';
+    Sim.triggerShockwave();
+  } else if (T.lastIr === 0 && ir === 1) {
+    UI.irSt.textContent = 'CLEAR'; UI.irSt.style.color = 'var(--c-green)';
+  }
+  T.lastIr = ir;
+
+  /* Ring buffer */
+  T.ringBuffer.push({ ms, dist, speed, ttc, state, ir, muted,
+    sideDist: T.sideDist, pcTime: new Date().toISOString() });
+  if (T.ringBuffer.length > CFG.RING_MAX) T.ringBuffer.shift();
+
+  /* Chart buffer */
+  T.chartPoints.push({ t: ms, dist, speed, sideDist: T.sideDist });
+  const cCut = ms - (CFG.CHART_WIN_MS + 5000);
+  while (T.chartPoints.length > 0 && T.chartPoints[0].t < cCut) T.chartPoints.shift();
+}
+
+/* ==========================================================================
+   SERIAL CONNECTION
+   ========================================================================== */
+let lineBuf = '';
+
+async function connectSerial() {
+  if (!('serial' in navigator)) { alert('Web Serial not supported. Use Chrome/Edge.'); return; }
+  try {
+    const baud = parseInt(UI.baudSel.value, 10) || CFG.BAUD;
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: baud });
+    T.port = port; T.connected = true; T.keepReading = true;
+    setConnUI(true);
+    addLog('Port opened at ' + baud + ' baud.', 'info');
+    readLoop(port);
+  } catch (e) {
+    console.error('Serial:', e);
+    addLog('Serial error: ' + e.message, 'crit');
+    setConnUI(false);
+  }
+}
+
+async function readLoop(port) {
+  const dec = new TextDecoder();
+  lineBuf = '';
+  while (port.readable && T.keepReading) {
+    let rdr = null;
+    try {
+      rdr = port.readable.getReader(); T.reader = rdr;
+      while (T.keepReading) {
+        const { value, done } = await rdr.read();
+        if (done) break;
+        if (value && value.length) {
+          lineBuf += dec.decode(value, { stream: true });
+          const lines = lineBuf.split(/\r?\n/);
+          lineBuf = lines.pop();
+          for (let i = 0; i < lines.length; i++) processLine(lines[i]);
+        }
+      }
+    } catch (e) {
+      if (T.keepReading) await new Promise(r => setTimeout(r, 250));
+    } finally {
+      if (rdr) { try { rdr.releaseLock(); } catch(_){} T.reader = null; }
+    }
+  }
+}
+
+async function disconnectSerial() {
+  T.keepReading = false;
+  if (T.reader) { try { await T.reader.cancel(); } catch(_){} try { T.reader.releaseLock(); } catch(_){} T.reader = null; }
+  if (T.port) { try { await T.port.close(); } catch(_){} }
+  T.port = null; T.connected = false;
+  setConnUI(false);
+  addLog('Port closed.', 'info');
+}
+
+function setConnUI(on) {
+  T.connected = on;
+  if (on) {
+    UI.connDot.className = 'dot on'; setText(UI.connLabel, 'CONNECTED');
+    UI.btnConnect.textContent = 'DISCONNECT'; UI.btnConnect.className = 'btn btn-stop';
+    if (T.isDemo) toggleDemo(false);
+  } else {
+    UI.connDot.className = 'dot'; setText(UI.connLabel, 'DISCONNECTED');
+    UI.btnConnect.textContent = 'CONNECT'; UI.btnConnect.className = 'btn btn-go';
+    setText(UI.rateVal, '0 pps');
+  }
+}
+
+if ('serial' in navigator) {
+  navigator.serial.addEventListener('disconnect', () => { addLog('USB disconnected.', 'crit'); disconnectSerial(); });
+} else {
+  UI.unsup.style.display = 'block';
+}
+
+UI.btnConnect.addEventListener('click', () => T.connected ? disconnectSerial() : connectSerial());
+
+/* ==========================================================================
+   DEMO MODE
+   ========================================================================== */
+function toggleDemo(force) {
+  const next = force !== undefined ? force : !T.isDemo;
+  T.isDemo = next;
+  if (T.isDemo) {
+    if (T.connected) disconnectSerial();
+    UI.simBadge.classList.add('active');
+    UI.btnDemo.textContent = 'STOP DEMO'; UI.btnDemo.className = 'btn btn-demo-on';
+    UI.connDot.className = 'dot on'; setText(UI.connLabel, 'SIMULATION');
+    addLog('Demo started. Data is SIMULATED.', 'warn');
+    startDemo();
+  } else {
+    UI.simBadge.classList.remove('active');
+    UI.btnDemo.textContent = 'DEMO'; UI.btnDemo.className = 'btn';
+    if (T.demoId) { clearInterval(T.demoId); T.demoId = null; }
+    T.uptimeMs = 0; T.distance = null; T.sideDist = null; T.speed = null; T.ttc = null;
+    T.state = 'WAIT'; T.lastState = null; T.ir = 1; T.muted = 0;
+    T.chartPoints = []; T.ringBuffer = []; T.irHits = [];
+    UI.leadTbody.innerHTML = ''; computeLeadStats();
+    stateHist.length = 0; lastHistState = null;
+    setConnUI(false);
+    addLog('Demo stopped.', 'info');
+  }
+}
+
+function startDemo() {
+  if (T.demoId) clearInterval(T.demoId);
+  T.demoDist = 100; T.demoSide = 85; T.demoSpd = 16; T.demoWarnStart = 0; T.demoStep = 0;
+  const dt = 50;
+  T.demoId = setInterval(() => {
+    T.demoTimeMs += dt;
+    const ms = T.demoTimeMs;
+    let dist = T.demoDist, speed = 0, ttc = -1, state = 'WAIT', ir = 1, muted = 0;
+    if (T.demoStep === 0) {
+      dist = 100; speed = 0; ttc = -1; state = 'WAIT';
+      T.demoSide = 80 + Math.sin(ms/500)*6;
+      if (ms % 1500 === 0) { T.demoStep = 1; T.demoSpd = 14 + Math.random()*8; }
+    } else if (T.demoStep === 1) {
+      speed = T.demoSpd + Math.sin(ms/400)*0.8;
+      T.demoDist -= speed * (dt/1000);
+      dist = Math.max(0, T.demoDist);
+      T.demoSide = Math.max(25, 75 - (100 - dist)*0.35 + Math.sin(ms/300)*3);
+      ttc = (speed > 2 && dist > 0) ? dist/speed : -1;
+      if (dist > 75) state = 'UNCERTAIN';
+      else if (dist >= 50 && (ttc > 3 || ttc < 0)) state = 'MONITOR';
+      else if (dist < 50 || (ttc > 0 && ttc < 3)) {
+        state = 'HIGH RISK';
+        if (!T.demoWarnStart) T.demoWarnStart = ms;
+      } else state = 'MONITOR';
+      if (dist <= 0.8) {
+        ir = 0; T.demoStep = 2;
+        const lead = T.demoWarnStart ? ms - T.demoWarnStart : 0;
+        processLine('IR_HIT,lead_ms=' + Math.round(lead));
+        T.demoWarnStart = 0;
+      }
+    } else if (T.demoStep === 2) {
+      dist = 0; speed = 0; ttc = -1; state = 'HIGH RISK'; ir = 0;
+      T.demoSide = 42;
+      if (ms % 1600 === 0) { T.demoStep = 0; T.demoDist = 100; }
+    }
+    processLine(ms+','+dist.toFixed(1)+','+speed.toFixed(1)+','+ttc.toFixed(2)+','+state+','+ir+','+muted+','+T.demoSide.toFixed(1));
+  }, dt);
+}
+
+UI.btnDemo.addEventListener('click', () => toggleDemo());
+
+/* ==========================================================================
+   CANVAS UTILITIES
+   ========================================================================== */
+function sizeCanvas(cv, wrap) {
+  const dpr = devicePixelRatio || 1;
+  const r = wrap.getBoundingClientRect();
+  const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+  if (cv.width !== w || cv.height !== h) {
+    cv.width = w; cv.height = h;
+  }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+let chartDirty = true, tlDirty = true, lcDirty = true, simDirty = true;
+const ro = new ResizeObserver(entries => {
+  for (const e of entries) {
+    if (e.target === UI.chartWrap)     chartDirty = true;
+    if (e.target === UI.tlWrap)        tlDirty = true;
+    if (e.target === UI.lcWrap)        lcDirty = true;
+    if (e.target === UI.simCanvasWrap) simDirty = true;
+  }
+});
+ro.observe(UI.chartWrap); ro.observe(UI.tlWrap); ro.observe(UI.lcWrap); ro.observe(UI.simCanvasWrap);
+
+/* Chart hover state */
+let hoverX = -1, hoverY = -1;
+UI.chartCv.addEventListener('mousemove', e => {
+  const r = UI.chartCv.getBoundingClientRect();
+  hoverX = e.clientX - r.left; hoverY = e.clientY - r.top;
+});
+UI.chartCv.addEventListener('mouseleave', () => { hoverX = -1; hoverY = -1; });
+
+/* ==========================================================================
+   STRIP CHART — two stacked plots (distance [Front + Lateral] + speed)
+   ========================================================================== */
+function drawChart() {
+  const c = sizeCanvas(UI.chartCv, UI.chartWrap);
+  const W = UI.chartCv.clientWidth, H = UI.chartCv.clientHeight;
+  if (!W || !H) return;
+
+  c.clearRect(0, 0, W, H);
+
+  const pL = 48, pR = 8, pT = 8, pB = 22, gap = 18;
+  const plotH = Math.floor((H - pT - pB - gap) / 2);
+  if (plotH < 20) return;
+  const dT = pT, dB = pT + plotH;
+  const sT = dB + gap, sB = sT + plotH;
+  const pW = W - pL - pR;
+
+  const yMap = (v, min, max, top, bot) => {
+    const cl = Math.max(min, Math.min(max, v));
+    return bot - ((cl - min) / (max - min)) * (bot - top);
+  };
+
+  /* ---- Distance plot background ---- */
+  c.fillStyle = '#0d0e10';
+  c.fillRect(pL, dT, pW, plotH);
+  /* Danger band 0-50 */
+  const y50d = yMap(50, 0, 100, dT, dB);
+  c.fillStyle = 'rgba(232,54,42,0.06)';
+  c.fillRect(pL, y50d, pW, dB - y50d);
+
+  /* Distance gridlines */
+  const dTicks = [0, 25, 50, 75, 100];
+  c.textAlign = 'right';
+  c.font = '10px monospace';
+  for (const v of dTicks) {
+    const y = yMap(v, 0, 100, dT, dB);
+    c.strokeStyle = v === 50 ? 'rgba(232,54,42,0.3)' : '#1a1c20';
+    c.lineWidth = 1; c.beginPath(); c.moveTo(pL, y); c.lineTo(pL+pW, y); c.stroke();
+    c.fillStyle = v === 50 ? '#e8362a' : '#5a6070';
+    c.fillText(String(v), pL - 6, y + 4);
+  }
+  /* 50 cm dashed */
+  c.save(); c.strokeStyle = '#e8362a'; c.lineWidth = 1; c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(pL, y50d); c.lineTo(pL+pW, y50d); c.stroke(); c.restore();
+  /* Y label */
+  c.save(); c.fillStyle = '#6e7582'; c.font = '9px monospace'; c.textAlign = 'center';
+  c.translate(12, dT + plotH/2); c.rotate(-Math.PI/2);
+  c.fillText('cm', 0, 0); c.restore();
+
+  /* ---- Speed plot background ---- */
+  c.fillStyle = '#0d0e10';
+  c.fillRect(pL, sT, pW, plotH);
+  const sTicks = [0, 25, 50, 75, 100];
+  c.textAlign = 'right';
+  c.font = '10px monospace';
+  for (const v of sTicks) {
+    const y = yMap(v, 0, 100, sT, sB);
+    c.strokeStyle = '#1a1c20'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(pL, y); c.lineTo(pL+pW, y); c.stroke();
+    c.fillStyle = '#5a6070';
+    c.fillText(String(v), pL - 6, y + 4);
+  }
+  c.save(); c.fillStyle = '#6e7582'; c.font = '9px monospace'; c.textAlign = 'center';
+  c.translate(12, sT + plotH/2); c.rotate(-Math.PI/2);
+  c.fillText('cm/s', 0, 0); c.restore();
+
+  /* ---- Time axis ---- */
+  const nowMs = T.uptimeMs, winMs = CFG.CHART_WIN_MS, startMs = nowMs - winMs;
+  c.textAlign = 'center'; c.font = '9px monospace'; c.fillStyle = '#5a6070';
+  for (let s = 0; s <= 30; s += 5) {
+    const x = pL + pW - (s / 30) * pW;
+    c.strokeStyle = '#1a1c20'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(x, dT); c.lineTo(x, dB); c.stroke();
+    c.beginPath(); c.moveTo(x, sT); c.lineTo(x, sB); c.stroke();
+    c.fillText('-' + s + 's', x, sB + 14);
+  }
+  /* Separator line between plots */
+  c.strokeStyle = '#2a2d32'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(pL, dB + gap/2); c.lineTo(pL+pW, dB + gap/2); c.stroke();
+
+  /* ---- Plot data ---- */
+  const pts = T.chartPoints;
+  if (pts.length < 2) return;
+  const xM = t => pL + ((t - startMs) / winMs) * pW;
+
+  /* Front Distance trace (white solid) */
+  c.save(); c.strokeStyle = '#e8eaed'; c.lineWidth = 1.5;
+  c.beginPath(); let on = false;
+  for (const p of pts) {
+    if (p.t < startMs - 2000 || p.dist === null || isNaN(p.dist)) continue;
+    const x = xM(p.t), y = yMap(p.dist, 0, 100, dT, dB);
+    if (!on) { c.moveTo(x, y); on = true; } else c.lineTo(x, y);
+  }
+  c.stroke(); c.restore();
+
+  /* Lateral Distance trace (cyan solid) */
+  c.save(); c.strokeStyle = '#00e5ff'; c.lineWidth = 1.5;
+  c.beginPath(); on = false;
+  for (const p of pts) {
+    if (p.t < startMs - 2000 || p.sideDist === null || isNaN(p.sideDist)) continue;
+    const x = xM(p.t), y = yMap(p.sideDist, 0, 100, dT, dB);
+    if (!on) { c.moveTo(x, y); on = true; } else c.lineTo(x, y);
+  }
+  c.stroke(); c.restore();
+
+  /* Speed trace (amber dashed) */
+  c.save(); c.strokeStyle = '#f0a030'; c.lineWidth = 1.5; c.setLineDash([4,3]);
+  c.beginPath(); on = false;
+  for (const p of pts) {
+    if (p.t < startMs - 2000 || p.speed === null || isNaN(p.speed)) continue;
+    const x = xM(p.t), y = yMap(p.speed, 0, 100, sT, sB);
+    if (!on) { c.moveTo(x, y); on = true; } else c.lineTo(x, y);
+  }
+  c.stroke(); c.restore();
+
+  /* ---- Crosshair on hover ---- */
+  if (hoverX >= pL && hoverX <= pL + pW && hoverY >= dT && hoverY <= sB) {
+    const ht = startMs + ((hoverX - pL) / pW) * winMs;
+    let best = null, bestDt = Infinity;
+    for (const p of pts) { const dt = Math.abs(p.t - ht); if (dt < bestDt) { bestDt = dt; best = p; } }
+    if (best) {
+      const nx = xM(best.t);
+      c.save(); c.strokeStyle = '#3a3f4a'; c.lineWidth = 1; c.setLineDash([2,2]);
+      c.beginPath(); c.moveTo(nx, dT); c.lineTo(nx, sB); c.stroke(); c.restore();
+
+      const dy = yMap(best.dist, 0, 100, dT, dB);
+      const sy = yMap(best.speed, 0, 100, sT, sB);
+      c.fillStyle = '#e8eaed'; c.beginPath(); c.arc(nx, dy, 3, 0, Math.PI*2); c.fill();
+      if (best.sideDist !== null) {
+        const sdy = yMap(best.sideDist, 0, 100, dT, dB);
+        c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(nx, sdy, 3, 0, Math.PI*2); c.fill();
+      }
+      c.fillStyle = '#f0a030'; c.beginPath(); c.arc(nx, sy, 3, 0, Math.PI*2); c.fill();
+
+      const sideStr = best.sideDist !== null ? best.sideDist.toFixed(1) + ' cm (B)' : '-- (B)';
+      const txt = 'A: ' + best.dist.toFixed(1) + ' cm  |  ' + sideStr + '  |  ' + best.speed.toFixed(1) + ' cm/s';
+      c.font = '10px monospace';
+      const tw = c.measureText(txt).width;
+      let tx = nx + 10;
+      if (tx + tw + 8 > pL + pW) tx = nx - tw - 18;
+      c.fillStyle = 'rgba(10,11,13,0.94)';
+      c.fillRect(tx - 4, dT + 2, tw + 8, 16);
+      c.strokeStyle = '#3a3f4a'; c.lineWidth = 1;
+      c.strokeRect(tx - 4, dT + 2, tw + 8, 16);
+      c.fillStyle = '#e8eaed'; c.textAlign = 'left';
+      c.fillText(txt, tx, dT + 14);
+    }
+  }
+}
+
+/* ==========================================================================
+   STATE TIMELINE — last 60 s
+   ========================================================================== */
+const STATE_CLR = {
+  'WAIT':        '#1a1c20',
+  'NO APPROACH': '#25282e',
+  'UNCERTAIN':   '#3d3018',
+  'MONITOR':     '#7a5a10',
+  'HIGH RISK':   '#a02020'
+};
+
+function drawTimeline() {
+  const c = sizeCanvas(UI.tlCv, UI.tlWrap);
+  const W = UI.tlCv.clientWidth, H = UI.tlCv.clientHeight;
+  if (!W || !H) return;
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = '#0d0e10'; c.fillRect(0, 0, W, H);
+
+  if (!stateHist.length) return;
+  const now = T.uptimeMs, win = 60000, start = now - win;
+
+  for (let i = 0; i < stateHist.length; i++) {
+    const e = stateHist[i];
+    const nxt = i + 1 < stateHist.length ? stateHist[i+1].t : now;
+    let x0 = ((e.t - start) / win) * W;
+    let x1 = ((nxt - start) / win) * W;
+    if (x1 <= 0 || x0 >= W) continue;
+    x0 = Math.max(0, x0); x1 = Math.min(W, x1);
+    c.fillStyle = STATE_CLR[e.state] || '#1a1c20';
+    c.fillRect(x0, 0, x1 - x0, H);
+  }
+
+  c.font = '8px monospace'; c.textAlign = 'left'; c.fillStyle = '#6e7582';
+  for (let i = 0; i < stateHist.length; i++) {
+    const e = stateHist[i];
+    const x = ((e.t - start) / win) * W;
+    if (x < 0 || x > W - 30) continue;
+    c.strokeStyle = '#3a3f4a'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke();
+  }
+}
+
+/* ==========================================================================
+   LEAD-TIME BAR CHART
+   ========================================================================== */
+function drawLeadChart() {
+  const c = sizeCanvas(UI.lcCv, UI.lcWrap);
+  const W = UI.lcCv.clientWidth, H = UI.lcCv.clientHeight;
+  if (!W || !H) return;
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = '#0d0e10'; c.fillRect(0, 0, W, H);
+
+  const hits = T.irHits;
+  if (!hits.length) {
+    c.fillStyle = '#3a3f4a'; c.font = '11px system-ui'; c.textAlign = 'center';
+    c.fillText('No IR events recorded', W/2, H/2 + 4);
+    return;
+  }
+
+  const vals = hits.filter(h => !h.isMiss && h.leadMs !== null).map(h => h.leadMs);
+  const maxV = vals.length ? Math.max(...vals) * 1.15 : 1000;
+  const padT = 4, padB = 4, padL = 8, padR = 8;
+  const cH = H - padT - padB;
+  const barW = Math.max(3, Math.min(16, (W - padL - padR) / hits.length - 2));
+
+  hits.forEach((h, i) => {
+    const x = padL + i * (barW + 2);
+    if (h.isMiss) {
+      c.fillStyle = '#e8362a';
+      c.fillRect(x, padT + cH - 3, barW, 3);
+    } else {
+      const bH = Math.max(2, (h.leadMs / maxV) * cH);
+      c.fillStyle = '#3ddc84';
+      c.fillRect(x, padT + cH - bH, barW, bH);
+    }
+  });
+
+  if (vals.length) {
+    const sorted = [...vals].sort((a,b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const med = sorted.length % 2 === 0 ? (sorted[mid-1]+sorted[mid])/2 : sorted[mid];
+    const my = padT + cH - (med / maxV) * cH;
+    c.save(); c.strokeStyle = '#f0a030'; c.lineWidth = 1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(padL, my); c.lineTo(W - padR, my); c.stroke(); c.restore();
+    c.fillStyle = '#f0a030'; c.font = '9px monospace'; c.textAlign = 'right';
+    c.fillText('med ' + med.toFixed(0), W - padR, my - 3);
+  }
+}
+
+/* ==========================================================================
+   2D KINEMATIC INCIDENT SIMULATOR & VIDEO ENGINE
+   ========================================================================== */
+const Sim = {
+  isLive: true,
+  isPlaying: false,
+  playSpeed: 1.0,
+  currTimeMs: 0,
+  maxTimeMs: 6000,
+  scenario: 'headon',
+  scenarioData: [],
+  intervalId: null,
+  shockwaveActive: 0,
+  mediaRecorder: null,
+  recordedChunks: [],
+
+  triggerShockwave() {
+    this.shockwaveActive = 30; // 30 frames of burst
+  },
+
+  buildScenario(type) {
+    const data = [];
+    const dur = 6000; // 6 seconds
+    const dt = 50;
+    const totalFrames = dur / dt;
+
+    for (let f = 0; f <= totalFrames; f++) {
+      const ms = f * dt;
+      let frontD = 100, sideD = 90, speed = 0, ttc = -1, state = 'WAIT', ir = 1;
+
+      if (type === 'headon') {
+        // Opposing vehicle approaches at 18 cm/s down to 13.8cm impact at 4800ms
+        if (ms < 1000) {
+          frontD = 100; speed = 0; ttc = -1; state = 'WAIT'; sideD = 85;
+        } else if (ms < 4800) {
+          const t = (ms - 1000) / 3800;
+          frontD = 100 - t * 86.2; // 100 -> 13.8
+          speed = 22.6;
+          ttc = frontD / speed;
+          if (frontD > 75) state = 'UNCERTAIN';
+          else if (frontD >= 50) state = 'MONITOR';
+          else state = 'HIGH RISK';
+          sideD = 82 + Math.sin(ms/400)*4;
+        } else {
+          frontD = 13.8; speed = 0; ttc = -1; state = 'HIGH RISK'; ir = 0; sideD = 80;
+        }
+      } else if (type === 'lateral') {
+        // Lateral vehicle charges across perpendicular intersection
+        frontD = 92;
+        if (ms < 1000) {
+          sideD = 100; speed = 0; ttc = -1; state = 'WAIT';
+        } else if (ms < 5000) {
+          const t = (ms - 1000) / 4000;
+          sideD = 100 - t * 85.8; // 100 -> 14.2
+          speed = 21.4;
+          ttc = sideD / speed;
+          if (sideD > 70) state = 'UNCERTAIN';
+          else if (sideD >= 50) state = 'MONITOR';
+          else state = 'HIGH RISK';
+        } else {
+          sideD = 14.2; speed = 0; ttc = -1; state = 'HIGH RISK'; ir = 0;
+        }
+      } else {
+        // Dual approach: both front & lateral
+        if (ms < 1000) {
+          frontD = 100; sideD = 100; speed = 0; ttc = -1; state = 'WAIT';
+        } else if (ms < 4900) {
+          const t = (ms - 1000) / 3900;
+          frontD = 100 - t * 84;
+          sideD = 100 - t * 82;
+          speed = 21.5;
+          ttc = Math.min(frontD, sideD) / speed;
+          if (frontD < 50 || sideD < 50) state = 'HIGH RISK';
+          else if (frontD < 75 || sideD < 75) state = 'MONITOR';
+          else state = 'UNCERTAIN';
+        } else {
+          frontD = 16.0; sideD = 18.0; speed = 0; ttc = -1; state = 'HIGH RISK'; ir = 0;
+        }
+      }
+      data.push({ ms, dist: frontD, sideDist: sideD, speed, ttc, state, ir, muted: 0 });
+    }
+    return data;
+  },
+
+  play() {
+    this.isLive = false;
+    this.isPlaying = true;
+    UI.simStatusPill.className = 'tpill';
+    UI.simStatusPill.querySelector('.dot').className = 'dot warn';
+    setText(UI.simStatusText, 'REPLAYING VIDEO');
+    UI.btnSimPlay.textContent = '⏸ PAUSE';
+    UI.btnSimLive.className = 'btn';
+
+    if (!this.scenarioData.length) {
+      this.scenarioData = this.buildScenario(this.scenario);
+    }
+
+    if (this.intervalId) clearInterval(this.intervalId);
+    const stepMs = 50;
+    this.intervalId = setInterval(() => {
+      this.currTimeMs += stepMs * this.playSpeed;
+      if (this.currTimeMs > this.maxTimeMs) {
+        this.currTimeMs = this.maxTimeMs;
+        this.pause();
+        return;
+      }
+      // Find matching frame
+      const idx = Math.min(this.scenarioData.length - 1, Math.floor(this.currTimeMs / stepMs));
+      const frame = this.scenarioData[idx];
+      if (frame) {
+        handleSample(frame.ms, frame.dist, frame.speed, frame.ttc, frame.state, frame.ir, frame.muted, frame.sideDist);
+        if (frame.ir === 0) Sim.triggerShockwave();
+      }
+      UI.simScrubber.value = String(Math.round((this.currTimeMs / this.maxTimeMs) * 100));
+      setText(UI.simTimeText, fmtShort(this.currTimeMs));
+    }, stepMs);
+  },
+
+  pause() {
+    this.isPlaying = false;
+    UI.btnSimPlay.textContent = '▶ PLAY VIDEO';
+    if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+  },
+
+  live() {
+    this.pause();
+    this.isLive = true;
+    UI.simStatusPill.className = 'tpill';
+    UI.simStatusPill.querySelector('.dot').className = 'dot on';
+    setText(UI.simStatusText, 'LIVE SENSOR');
+    UI.btnSimLive.className = 'btn btn-demo-on';
+  },
+
+  reset() {
+    this.pause();
+    this.currTimeMs = 0;
+    UI.simScrubber.value = '0';
+    setText(UI.simTimeText, '00:00.00');
+    this.live();
+  },
+
+  seek(pct) {
+    this.currTimeMs = (pct / 100) * this.maxTimeMs;
+    setText(UI.simTimeText, fmtShort(this.currTimeMs));
+    if (!this.scenarioData.length) this.scenarioData = this.buildScenario(this.scenario);
+    const idx = Math.min(this.scenarioData.length - 1, Math.floor(this.currTimeMs / 50));
+    const frame = this.scenarioData[idx];
+    if (frame) {
+      handleSample(frame.ms, frame.dist, frame.speed, frame.ttc, frame.state, frame.ir, frame.muted, frame.sideDist);
+    }
+  }
+};
+
+/* ==========================================================================
+   2D KINEMATIC SIMULATOR DRAWING FUNCTION
+   ========================================================================== */
+function drawSimulation() {
+  const c = sizeCanvas(UI.simCanvas, UI.simCanvasWrap);
+  const W = UI.simCanvas.clientWidth, H = UI.simCanvas.clientHeight;
+  if (!W || !H) return;
+
+  c.clearRect(0, 0, W, H);
+
+  // Background
+  c.fillStyle = '#080a0e';
+  c.fillRect(0, 0, W, H);
+
+  // Layout parameters
+  const roadW = Math.min(220, W * 0.32);
+  const roadCenterX = W * 0.62;
+  const roadL = roadCenterX - roadW/2;
+  const roadR = roadCenterX + roadW/2;
+
+  const egoY = H - 85;
+  const egoX = roadCenterX;
+  const pxPerCm = Math.max(1.8, Math.min(3.4, (egoY - 70) / 100));
+
+  // Current distance values
+  const frontDist = (T.distance !== null && !isNaN(T.distance)) ? T.distance : 100;
+  const sideDist = (T.sideDist !== null && !isNaN(T.sideDist)) ? T.sideDist : 85;
+  const ttc = T.ttc;
+  const state = T.state;
+
+  // 1. Draw Highway Road
+  c.fillStyle = '#0f1218';
+  c.fillRect(roadL, 0, roadW, H);
+
+  // Road borders
+  c.strokeStyle = '#3a4252'; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(roadL, 0); c.lineTo(roadL, H); c.stroke();
+  c.beginPath(); c.moveTo(roadR, 0); c.lineTo(roadR, H); c.stroke();
+
+  // Lane Divider (Dashed amber)
+  c.save();
+  c.strokeStyle = '#f0a030'; c.lineWidth = 2; c.setLineDash([12, 10]);
+  c.beginPath(); c.moveTo(roadCenterX, 0); c.lineTo(roadCenterX, H); c.stroke();
+  c.restore();
+
+  // 2. Cross Street / Intersection for Lateral Sensor B
+  const interY = egoY - 35;
+  const interH = 90;
+  c.fillStyle = '#0f1218';
+  c.fillRect(0, interY - interH/2, roadL, interH);
+  c.strokeStyle = '#3a4252'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(0, interY - interH/2); c.lineTo(roadL, interY - interH/2); c.stroke();
+  c.beginPath(); c.moveTo(0, interY + interH/2); c.lineTo(roadL, interY + interH/2); c.stroke();
+
+  // Intersection dashed lines
+  c.save();
+  c.strokeStyle = '#252a36'; c.lineWidth = 1.5; c.setLineDash([8, 8]);
+  c.beginPath(); c.moveTo(0, interY); c.lineTo(roadL, interY); c.stroke();
+  c.restore();
+
+  // 3. Danger Threshold (50 cm) line
+  const d50Y = egoY - 50 * pxPerCm;
+  c.save();
+  c.strokeStyle = 'rgba(232, 54, 42, 0.7)'; c.lineWidth = 1.5; c.setLineDash([5, 4]);
+  c.beginPath(); c.moveTo(roadL, d50Y); c.lineTo(roadR, d50Y); c.stroke();
+  c.fillStyle = '#e8362a'; c.font = '9px monospace'; c.textAlign = 'right';
+  c.fillText('50 CM DANGER LIMIT', roadR - 6, d50Y - 4);
+  c.restore();
+
+  // 4. Front Radar Cone (Sensor A)
+  const oppY = Math.max(d50Y - 80, egoY - frontDist * pxPerCm);
+  const coneSpread = Math.min(48, 12 + (egoY - oppY) * 0.16);
+
+  c.save();
+  const coneGrad = c.createLinearGradient(egoX, egoY, egoX, oppY);
+  if (frontDist < 50) {
+    coneGrad.addColorStop(0, 'rgba(232, 54, 42, 0.45)');
+    coneGrad.addColorStop(1, 'rgba(232, 54, 42, 0.08)');
+  } else {
+    coneGrad.addColorStop(0, 'rgba(0, 229, 255, 0.35)');
+    coneGrad.addColorStop(1, 'rgba(0, 229, 255, 0.05)');
+  }
+  c.fillStyle = coneGrad;
+  c.beginPath();
+  c.moveTo(egoX - 8, egoY - 26);
+  c.lineTo(egoX - coneSpread, oppY + 26);
+  c.lineTo(egoX + coneSpread, oppY + 26);
+  c.lineTo(egoX + 8, egoY - 26);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = frontDist < 50 ? '#e8362a' : '#00e5ff'; c.lineWidth = 1;
+  c.stroke();
+  c.restore();
+
+  // 5. Lateral Radar Cone (Sensor B - Orthogonal)
+  const latX = Math.max(20, egoX - sideDist * pxPerCm);
+  c.save();
+  const latGrad = c.createLinearGradient(egoX - 16, egoY, latX, egoY);
+  if (sideDist < 50) {
+    latGrad.addColorStop(0, 'rgba(240, 160, 48, 0.4)');
+    latGrad.addColorStop(1, 'rgba(240, 160, 48, 0.08)');
+  } else {
+    latGrad.addColorStop(0, 'rgba(0, 229, 255, 0.35)');
+    latGrad.addColorStop(1, 'rgba(0, 229, 255, 0.05)');
+  }
+  c.fillStyle = latGrad;
+  c.beginPath();
+  c.moveTo(egoX - 16, egoY - 14);
+  c.lineTo(latX + 26, interY - 22);
+  c.lineTo(latX + 26, interY + 22);
+  c.lineTo(egoX - 16, egoY + 14);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = sideDist < 50 ? '#f0a030' : '#00e5ff'; c.lineWidth = 1;
+  c.stroke();
+  c.restore();
+
+  // 6. Draw SECONDS AHEAD (Ego) Vehicle
+  drawCar(c, egoX, egoY, 32, 52, '#181e28', '#2563eb', 'SECONDS AHEAD (EGO)', false);
+
+  // 7. Draw Opposing Vehicle (Front)
+  drawCar(c, egoX, oppY, 32, 52, '#7a1414', '#e8362a', 'OPPOSING VEHICLE', false);
+  // Front Distance Tag
+  c.fillStyle = frontDist < 50 ? '#e8362a' : '#e8eaed';
+  c.font = '700 10px monospace'; c.textAlign = 'center';
+  c.fillText('FRONT: ' + frontDist.toFixed(1) + ' cm', egoX, oppY - 32);
+
+  // 8. Draw Lateral Vehicle (Sensor B)
+  drawCar(c, latX, interY, 52, 32, '#7a4210', '#f0a030', 'LATERAL (B)', true);
+  // Side Distance Tag
+  c.fillStyle = sideDist < 50 ? '#f0a030' : '#00e5ff';
+  c.font = '700 10px monospace'; c.textAlign = 'center';
+  c.fillText('SIDE: ' + sideDist.toFixed(1) + ' cm', latX, interY - 22);
+
+  // 9. Ground-Truth Impact Shockwave Burst
+  if (Sim.shockwaveActive > 0) {
+    const r1 = (30 - Sim.shockwaveActive) * 2.5;
+    const r2 = r1 * 1.5;
+    c.save();
+    c.strokeStyle = 'rgba(232, 54, 42, ' + (Sim.shockwaveActive / 30) + ')';
+    c.lineWidth = 2.5;
+    c.beginPath(); c.arc(egoX, oppY + 26, r1, 0, Math.PI*2); c.stroke();
+    c.strokeStyle = 'rgba(240, 160, 48, ' + (Sim.shockwaveActive / 30) * 0.7 + ')';
+    c.beginPath(); c.arc(egoX, oppY + 26, r2, 0, Math.PI*2); c.stroke();
+    c.restore();
+    Sim.shockwaveActive--;
+  }
+
+  // 10. Virtual 16x2 I2C LCD Display (Top Left Overlay)
+  c.save();
+  const lcdW = 210, lcdH = 58;
+  c.fillStyle = '#05180c';
+  c.fillRect(12, 12, lcdW, lcdH);
+  c.strokeStyle = '#1b4d2e'; c.lineWidth = 1.5;
+  c.strokeRect(12, 12, lcdW, lcdH);
+  c.fillStyle = '#3ddc84';
+  c.font = '700 12px monospace'; c.textAlign = 'left';
+  const l1 = 'D: ' + (frontDist >= 100 ? '100cm' : String(frontDist.toFixed(0)).padStart(3,'0')+'cm') + '  TTC:' + (ttc > 0 ? ttc.toFixed(1)+'s' : '--');
+  const l2 = 'LAT:' + (sideDist >= 100 ? '100cm' : String(sideDist.toFixed(0)).padStart(3,'0')+'cm') + ' ' + state;
+  c.fillText(l1, 20, 32);
+  c.fillText(l2, 20, 50);
+  c.fillStyle = '#6e7582'; c.font = '8px monospace';
+  c.fillText('HARDWARE 16x2 I2C LCD (0x27)', 20, 64);
+  c.restore();
+
+  // 11. Live Telemetry Glass HUD Card (Top Right Overlay)
+  c.save();
+  const hudW = 220, hudH = 120;
+  const hudX = W - hudW - 12, hudY = 12;
+  c.fillStyle = 'rgba(12, 15, 20, 0.88)';
+  c.fillRect(hudX, hudY, hudW, hudH);
+  c.strokeStyle = '#252e3e'; c.lineWidth = 1;
+  c.strokeRect(hudX, hudY, hudW, hudH);
+
+  c.font = '700 10px monospace'; c.textAlign = 'left';
+  c.fillStyle = '#6e7582'; c.fillText('KINEMATIC TELEMETRY HUD', hudX + 8, hudY + 16);
+
+  c.fillStyle = STATE_CLR[state] || '#1a1c20';
+  c.fillRect(hudX + 8, hudY + 22, 60, 14);
+  c.fillStyle = '#ffffff'; c.font = '800 9px monospace';
+  c.fillText(state, hudX + 12, hudY + 33);
+
+  c.font = '10px monospace';
+  c.fillStyle = '#e8eaed';
+  c.fillText('FRONT SENSOR (A): ' + frontDist.toFixed(1) + ' cm', hudX + 8, hudY + 52);
+  c.fillStyle = '#00e5ff';
+  c.fillText('LATERAL SENS (B): ' + sideDist.toFixed(1) + ' cm', hudX + 8, hudY + 68);
+  c.fillStyle = '#f0a030';
+  c.fillText('APPROACH SPEED:   ' + (T.speed !== null ? T.speed.toFixed(1) : '0.0') + ' cm/s', hudX + 8, hudY + 84);
+  c.fillStyle = (ttc !== null && ttc > 0 && ttc < 3) ? '#e8362a' : '#9aa0ab';
+  c.fillText('TIME TO IMPACT:   ' + (ttc !== null && ttc > 0 ? ttc.toFixed(2) + ' s' : '--'), hudX + 8, hudY + 100);
+  c.fillStyle = T.ir === 0 ? '#e8362a' : '#3ddc84';
+  c.fillText('IR GROUND TRUTH:  ' + (T.ir === 0 ? 'IMPACT CONTACT' : 'CLEAR'), hudX + 8, hudY + 114);
+  c.restore();
+}
+
+function drawCar(c, x, y, w, h, bodyCol, roofCol, label, isHorizontal) {
+  c.save();
+  c.translate(x, y);
+
+  // Chassis shadow
+  c.fillStyle = 'rgba(0,0,0,0.5)';
+  c.fillRect(-w/2 - 2, -h/2 + 2, w + 4, h + 2);
+
+  // Main Car Body
+  c.fillStyle = bodyCol;
+  c.strokeStyle = roofCol;
+  c.lineWidth = 1.5;
+  c.fillRect(-w/2, -h/2, w, h);
+  c.strokeRect(-w/2, -h/2, w, h);
+
+  // Roof / Windshield
+  c.fillStyle = roofCol;
+  if (!isHorizontal) {
+    c.fillRect(-w/2 + 4, -h/2 + 10, w - 8, h - 20);
+    // Headlights
+    c.fillStyle = '#ffe082';
+    c.fillRect(-w/2 + 2, -h/2, 5, 3);
+    c.fillRect(w/2 - 7, -h/2, 5, 3);
+    // Tail lights
+    c.fillStyle = '#e8362a';
+    c.fillRect(-w/2 + 2, h/2 - 3, 5, 3);
+    c.fillRect(w/2 - 7, h/2 - 3, 5, 3);
+  } else {
+    c.fillRect(-w/2 + 10, -h/2 + 4, w - 20, h - 8);
+    // Headlights (facing right)
+    c.fillStyle = '#ffe082';
+    c.fillRect(w/2 - 3, -h/2 + 2, 3, 5);
+    c.fillRect(w/2 - 3, h/2 - 7, 3, 5);
+    // Tail lights (facing left)
+    c.fillStyle = '#e8362a';
+    c.fillRect(-w/2, -h/2 + 2, 3, 5);
+    c.fillRect(-w/2, h/2 - 7, 3, 5);
+  }
+
+  // Label
+  c.fillStyle = '#6e7582'; c.font = '8px monospace'; c.textAlign = 'center';
+  c.fillText(label, 0, h/2 + 12);
+  c.restore();
+}
+
+/* ==========================================================================
+   MAIN RENDER LOOP — single requestAnimationFrame
+   ========================================================================== */
+let lastChartLen = 0, lastHistLen = 0, lastLeadLen = 0;
+
+function renderLoop(now) {
+  /* PPS */
+  if (now - T.lastPpsCheck >= 1000) {
+    T.pps = T.ppsCounter; T.ppsCounter = 0; T.lastPpsCheck = now;
+    setText(UI.rateVal, T.pps + ' pps');
+  }
+
+  /* Watchdog */
+  if (T.connected || T.isDemo) {
+    const el = performance.now() - T.lastPacketTime;
+    if (el > CFG.WATCHDOG_MS) {
+      UI.connDot.className = 'dot warn'; setText(UI.connLabel, 'NO DATA');
+    } else if (T.isDemo) {
+      UI.connDot.className = 'dot on'; setText(UI.connLabel, 'SIMULATION');
+    } else {
+      UI.connDot.className = 'dot on'; setText(UI.connLabel, 'CONNECTED');
+    }
+  }
+
+  /* Top bar */
+  setText(UI.uptimeVal, fmtUp(T.uptimeMs));
+  setText(UI.bufN, String(T.ringBuffer.length));
+
+  /* State banner */
+  const st = T.state;
+  const scMap = { 'WAIT':'s-wait','NO APPROACH':'s-noapproach','UNCERTAIN':'s-uncertain','MONITOR':'s-monitor','HIGH RISK':'s-highrisk' };
+  const sc = scMap[st] || 's-wait';
+  if (!UI.stateBanner.classList.contains(sc)) {
+    UI.stateBanner.className = 'panel ' + sc;
+  }
+  setText(UI.stateText, st);
+
+  /* Readouts */
+  const hasTgt = T.state !== 'WAIT' && T.distance !== null && T.distance >= CFG.RANGE_MIN;
+  setText(UI.vDist, hasTgt ? T.distance.toFixed(1) : '--.-');
+  setText(UI.vSide, T.sideDist !== null ? T.sideDist.toFixed(1) : '--.-');
+  setText(UI.vSpd, T.speed !== null ? T.speed.toFixed(1) : '--.-');
+
+  if (T.ttc !== null && T.ttc >= 0) {
+    setText(UI.vTtc, T.ttc.toFixed(2));
+  } else {
+    setText(UI.vTtc, '--');
+  }
+
+  /* TTC bar */
+  if (T.ttc !== null && T.ttc >= 0 && T.ttc <= CFG.TTC_BAR_MAX) {
+    const pct = Math.max(0, Math.min(100, (T.ttc / CFG.TTC_BAR_MAX) * 100));
+    UI.ttcFill.style.width = pct + '%';
+    UI.ttcFill.style.backgroundColor = T.ttc < CFG.TTC_CRIT_S ? '#e8362a' : T.ttc < 4 ? '#f0a030' : '#9aa0ab';
+  } else {
+    UI.ttcFill.style.width = '0%';
+  }
+
+  /* Readout colours */
+  if (hasTgt && T.distance < CFG.DANGER_CM) {
+    UI.vDist.style.color = '#e8362a';
+  } else {
+    UI.vDist.style.color = '';
+  }
+  if (T.sideDist !== null && T.sideDist < CFG.DANGER_CM) {
+    UI.vSide.style.color = '#f0a030';
+  } else {
+    UI.vSide.style.color = '#00e5ff';
+  }
+  if (T.speed !== null && T.speed > 5) {
+    UI.vSpd.style.color = '#f0a030';
+  } else {
+    UI.vSpd.style.color = '';
+  }
+  if (T.ttc !== null && T.ttc >= 0 && T.ttc < CFG.TTC_CRIT_S) {
+    UI.vTtc.style.color = '#e8362a';
+  } else {
+    UI.vTtc.style.color = '';
+  }
+
+  /* Range bar */
+  if (hasTgt) {
+    const pctA = Math.max(0, Math.min(100, T.distance));
+    UI.rangeMarker.style.left = pctA + '%';
+    setText(UI.rangeReadout, T.distance.toFixed(1) + ' cm');
+  } else {
+    UI.rangeMarker.style.left = '100%';
+    setText(UI.rangeReadout, '-- cm');
+  }
+
+  if (T.sideDist !== null) {
+    const pctB = Math.max(0, Math.min(100, T.sideDist));
+    UI.rangeMarkerSide.style.left = pctB + '%';
+    setText(UI.rangeReadoutSide, T.sideDist.toFixed(1) + ' cm');
+  } else {
+    UI.rangeMarkerSide.style.left = '100%';
+    setText(UI.rangeReadoutSide, '-- cm');
+  }
+
+  /* Buzzer */
+  if (T.muted === 1) {
+    setText(UI.bzSt, 'MUTED'); UI.bzSt.style.color = 'var(--c-amber)';
+  } else {
+    setText(UI.bzSt, 'ARMED'); UI.bzSt.style.color = '';
+  }
+
+  /* Telemetry Charts (Dashboard & Split) */
+  if (document.body.classList.contains('mode-dash') || document.body.classList.contains('mode-split')) {
+    const cLen = T.chartPoints.length;
+    if (chartDirty || cLen !== lastChartLen || hoverX >= 0) {
+      drawChart(); lastChartLen = cLen; chartDirty = false;
+    }
+    const hLen = stateHist.length;
+    if (tlDirty || hLen !== lastHistLen || cLen !== lastChartLen) {
+      drawTimeline(); lastHistLen = hLen; tlDirty = false;
+    }
+    const iLen = T.irHits.length;
+    if (lcDirty || iLen !== lastLeadLen) {
+      drawLeadChart(); lastLeadLen = iLen; lcDirty = false;
+    }
+  }
+
+  /* Kinematic Simulator (Simulator & Split) */
+  if (document.body.classList.contains('mode-sim') || document.body.classList.contains('mode-split')) {
+    drawSimulation();
+  }
+
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
+/* ==========================================================================
+   VIEW TAB SWITCHING
+   ========================================================================== */
+function setViewMode(mode) {
+  document.body.classList.remove('mode-dash', 'mode-sim', 'mode-split');
+  document.body.classList.add('mode-' + mode);
+  UI.tabDash.classList.toggle('active', mode === 'dash');
+  UI.tabSim.classList.toggle('active', mode === 'sim');
+  UI.tabSplit.classList.toggle('active', mode === 'split');
+  chartDirty = true; tlDirty = true; lcDirty = true; simDirty = true;
+}
+
+UI.tabDash.addEventListener('click', () => setViewMode('dash'));
+UI.tabSim.addEventListener('click',  () => setViewMode('sim'));
+UI.tabSplit.addEventListener('click',() => setViewMode('split'));
+
+/* Voice Alert AI toggle & Language Selector */
+UI.voiceLangSel.value = currentVoiceLang;
+UI.voiceLangSel.addEventListener('change', e => {
+  currentVoiceLang = e.target.value;
+  localStorage.setItem('voice_lang', currentVoiceLang);
+  const pack = VOICE_PACKS[currentVoiceLang] || VOICE_PACKS.en;
+  addLog('Voice AI language: ' + pack.name, 'info');
+  triggerVoiceAlert('init');
+});
+
+UI.btnVoice.addEventListener('click', () => {
+  voiceEnabled = !voiceEnabled;
+  UI.btnVoice.classList.toggle('active', voiceEnabled);
+  if (voiceEnabled) {
+    triggerVoiceAlert('init');
+    addLog('Voice Alert AI activated.', 'info');
+  } else {
+    addLog('Voice Alert AI muted.', 'info');
+  }
+});
+
+/* ==========================================================================
+   SIMULATOR TOOLBAR CONTROLS
+   ========================================================================== */
+UI.simScenarioSel.addEventListener('change', e => {
+  Sim.scenario = e.target.value;
+  Sim.scenarioData = Sim.buildScenario(Sim.scenario);
+  Sim.reset();
+});
+
+UI.btnSimPlay.addEventListener('click', () => {
+  if (Sim.isPlaying) Sim.pause();
+  else Sim.play();
+});
+
+UI.btnSimLive.addEventListener('click', () => Sim.live());
+UI.btnSimReset.addEventListener('click', () => Sim.reset());
+
+UI.simScrubber.addEventListener('input', e => {
+  Sim.seek(parseFloat(e.target.value));
+});
+
+UI.speedBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    UI.speedBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    Sim.playSpeed = parseFloat(btn.dataset.speed);
+  });
+});
+
+/* Video recording */
+UI.btnSimRecord.addEventListener('click', () => {
+  if (Sim.mediaRecorder && Sim.mediaRecorder.state === 'recording') {
+    Sim.mediaRecorder.stop();
+    UI.btnSimRecord.textContent = '🎬 RECORD CLIP';
+    UI.btnSimRecord.classList.remove('btn-stop');
+    addLog('Simulation recording finished.', 'info');
+    return;
+  }
+
+  try {
+    const stream = UI.simCanvas.captureStream(30);
+    Sim.recordedChunks = [];
+    Sim.mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    Sim.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) Sim.recordedChunks.push(e.data); };
+    Sim.mediaRecorder.onstop = () => {
+      const blob = new Blob(Sim.recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'seconds_ahead_simulation_' + new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + '.webm';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+    Sim.mediaRecorder.start();
+    UI.btnSimRecord.textContent = '⏹ STOP REC';
+    UI.btnSimRecord.classList.add('btn-stop');
+    addLog('Recording simulation video clip...', 'warn');
+    if (!Sim.isPlaying) Sim.play();
+  } catch(err) {
+    alert('MediaRecorder not supported or failed: ' + err.message);
+  }
+});
+
+/* ==========================================================================
+   BUTTON ACTIONS
+   ========================================================================== */
+UI.btnExport.addEventListener('click', () => {
+  if (!T.ringBuffer.length) { alert('Buffer empty. No data to export.'); return; }
+  const hdr = 'ms,dist_cm,speed_cms,ttc_s,state,ir,muted,side_cm,pc_time';
+  const rows = T.ringBuffer.map(s =>
+    [s.ms, s.dist.toFixed(2), s.speed.toFixed(2), s.ttc.toFixed(2), s.state, s.ir, s.muted,
+     s.sideDist !== null && s.sideDist !== undefined ? s.sideDist.toFixed(2) : '--',
+     '"' + s.pcTime + '"'].join(','));
+  const csv = [hdr, ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'seconds_ahead_' + new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  addLog('Exported ' + T.ringBuffer.length + ' samples to CSV.', 'info');
+});
+
+UI.btnClear.addEventListener('click', () => {
+  if (!confirm('Clear all buffers and logs?')) return;
+  T.ringBuffer = []; T.chartPoints = []; T.irHits = []; T.packetCount = 0;
+  stateHist.length = 0; lastHistState = null;
+  UI.leadTbody.innerHTML = ''; computeLeadStats();
+  UI.evtScroll.innerHTML = ''; evtTotal = 0;
+  chartDirty = true; tlDirty = true; lcDirty = true;
+  addLog('All data cleared.', 'info');
+});
+
+/* Raw Console Actions */
+UI.btnConsole.addEventListener('click', openRawModal);
+UI.btnRawClose.addEventListener('click', closeRawModal);
+UI.btnRawClear.addEventListener('click', () => {
+  rawHistory.length = 0;
+  UI.rawLog.innerHTML = '';
+});
+UI.rawModal.addEventListener('click', e => {
+  if (e.target === UI.rawModal) closeRawModal();
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && UI.rawModal.style.display !== 'none') closeRawModal();
+});
+const submitRawSend = () => {
+  const val = UI.rawSendInput.value.trim();
+  if (val) {
+    sendSerial(val);
+    UI.rawSendInput.value = '';
+  }
+};
+UI.btnRawSend.addEventListener('click', submitRawSend);
+UI.rawSendInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitRawSend();
+});
+
+/* ElevenLabs Config Modal Actions */
+function openElevenModal() {
+  UI.elevenKeyInput.value = elevenApiKey;
+  if (elevenVoiceId !== '21m00Tcm4TlvDq8ikWAM' &&
+      elevenVoiceId !== 'pNInz6obpgDQGcFmaJgB' &&
+      elevenVoiceId !== 'EXAVITQu4vr4xnSDxMaL' &&
+      elevenVoiceId !== 'ErXwobaYiN019PkySvjV') {
+    UI.elevenVoiceSel.value = 'custom';
+    UI.elevenCustomWrap.style.display = 'flex';
+    UI.elevenCustomVoice.value = elevenVoiceId;
+  } else {
+    UI.elevenVoiceSel.value = elevenVoiceId;
+    UI.elevenCustomWrap.style.display = 'none';
+  }
+  UI.elevenModelSel.value = elevenModelId;
+  if (elevenApiKey) {
+    UI.elevenStatusText.textContent = '🟢 Connected to ElevenLabs (' + elevenModelId + ')';
+    UI.elevenStatusText.style.color = 'var(--c-green)';
+  } else {
+    UI.elevenStatusText.textContent = '🟡 Fallback active: Web Speech API';
+    UI.elevenStatusText.style.color = 'var(--c-amber)';
+  }
+  UI.elevenModal.style.display = 'flex';
+}
+
+function closeElevenModal() {
+  UI.elevenModal.style.display = 'none';
+}
+
+UI.btnElevenCfg.addEventListener('click', openElevenModal);
+UI.btnElevenClose.addEventListener('click', closeElevenModal);
+UI.elevenModal.addEventListener('click', e => {
+  if (e.target === UI.elevenModal) closeElevenModal();
+});
+
+UI.elevenVoiceSel.addEventListener('change', e => {
+  UI.elevenCustomWrap.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+});
+
+UI.btnElevenSave.addEventListener('click', () => {
+  elevenApiKey = UI.elevenKeyInput.value.trim();
+  const v = UI.elevenVoiceSel.value;
+  elevenVoiceId = v === 'custom' ? (UI.elevenCustomVoice.value.trim() || '21m00Tcm4TlvDq8ikWAM') : v;
+  elevenModelId = UI.elevenModelSel.value;
+
+  localStorage.setItem('eleven_api_key', elevenApiKey);
+  localStorage.setItem('eleven_voice_id', elevenVoiceId);
+  localStorage.setItem('eleven_model_id', elevenModelId);
+
+  // Automatically activate Voice AI
+  voiceEnabled = true;
+  UI.btnVoice.classList.add('active');
+
+  UI.elevenStatusText.textContent = elevenApiKey ? '🟢 Saved & Active: ElevenLabs Connected' : '🟡 Saved: Web Speech Fallback';
+  UI.elevenStatusText.style.color = elevenApiKey ? 'var(--c-green)' : 'var(--c-amber)';
+  addLog('ElevenLabs Neural Voice configuration saved.', 'info');
+  setTimeout(closeElevenModal, 600);
+});
+
+UI.btnElevenTest.addEventListener('click', async () => {
+  const testKey = UI.elevenKeyInput.value.trim() || elevenApiKey;
+  const v = UI.elevenVoiceSel.value;
+  const testVoice = v === 'custom' ? (UI.elevenCustomVoice.value.trim() || '21m00Tcm4TlvDq8ikWAM') : v;
+  const testModel = UI.elevenModelSel.value;
+
+  if (!testKey) {
+    alert('Please enter your ElevenLabs API Key first.');
+    return;
+  }
+
+  UI.elevenStatusText.textContent = '⏳ Testing ElevenLabs voice generation...';
+  UI.elevenStatusText.style.color = 'var(--c-amber)';
+
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + testVoice, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': testKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: 'Seconds Ahead collision warning system online. Radar active.',
+        model_id: testModel,
+        voice_settings: { stability: 0.5, similarity_boost: 0.85 }
+      })
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.play();
+      UI.elevenStatusText.textContent = '🟢 ElevenLabs voice verified & playing!';
+      UI.elevenStatusText.style.color = 'var(--c-green)';
+    } else {
+      const err = await res.text();
+      UI.elevenStatusText.textContent = '🔴 ElevenLabs Error: ' + err.substring(0, 60);
+      UI.elevenStatusText.style.color = 'var(--c-red)';
+    }
+  } catch (err) {
+    UI.elevenStatusText.textContent = '🔴 Request failed: ' + err.message;
+    UI.elevenStatusText.style.color = 'var(--c-red)';
+  }
+});
+
+/* Initial log */
+addLog('System initialized. Waiting for serial data.', 'info');
+</script>
+</body>
+</html>
